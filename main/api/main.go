@@ -2,19 +2,19 @@ package main
 
 import (
     "net/http"
+
+	"clube/internal/serializer"
+	"clube/infraestructure/database"
+	"clube/infraestructure/models"
     "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 )
 
-type user struct {
-	Name string
-	BirthDate string
-	Cep string
-}
 
 func main() {
 	// Call the function
+	conn := database.NewDb()
 	app := chi.NewRouter()
 	app.Use(JWTMiddleware)
 	app.Use(middleware.Logger)
@@ -26,10 +26,16 @@ func main() {
 	})
 	
 	app.Post("/users", func(w http.ResponseWriter, app *http.Request) {
-		var userData user
+		var userData serializer.UserSerializer
+
 		render.DecodeJSON(app.Body, &userData)
 		render.JSON(w, app, userData)
 	})
+
+	err :=	models.Migrate(conn)
+	if err != nil {
+		panic(err)
+	}
 
 	http.ListenAndServe(":3000", app)
 }
