@@ -1,6 +1,25 @@
+DELETE http://127.0.0.1:3000/user/16
+
+PUT http://127.0.0.1:3000/user/16
+
+{
+"name":"alisson duarte",
+"cep":"5967030",
+"birth_date":"1995-10-10",
+"email":"alis1son@gmail.com",
+"passwd":"010111231212312",
+"phone":"84999999999"
+}
+
+GET http://127.0.0.1:3000/user/16
+
 POST http://127.0.0.1:3000/users
 
 {
 "name":"alisson",
-"cep":"5967030"
+"cep":"5967030",
+"birth_date":"1995-10-10",
+"email":"alis1son@gmail.com",
+"passwd":"010111231212312",
+"phone":"84999999999"
 }

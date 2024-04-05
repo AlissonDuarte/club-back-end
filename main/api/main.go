@@ -2,13 +2,11 @@ package main
 
 import (
     "net/http"
-
-	"clube/internal/serializer"
+	"clube/internal/views"
 	"clube/infraestructure/database"
 	"clube/infraestructure/models"
     "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/render"
 )
 
 
@@ -25,13 +23,13 @@ func main() {
 		w.Write([]byte("Hello World"))
 	})
 	
-	app.Post("/users", func(w http.ResponseWriter, app *http.Request) {
-		var userData serializer.UserSerializer
-
-		render.DecodeJSON(app.Body, &userData)
-		render.JSON(w, app, userData)
-	})
-
+	app.Post("/users", views.UserCreate)
+	app.Route("/user/{id}", func(app chi.Router) {
+		app.Get("/", views.UserRead)
+		app.Put("/", views.UserUpdate)
+		app.Delete("/", views.UserSoftDelete)
+		})
+	
 	err :=	models.Migrate(conn)
 	if err != nil {
 		panic(err)
