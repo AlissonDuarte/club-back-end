@@ -4,9 +4,11 @@ import (
 	"time"
 	"strconv"
     "net/http"
+	"html/template"
     "encoding/json"
 	"gorm.io/gorm"
 	"clube/internal/serializer"
+	"clube/internal/functions"
 	"clube/infraestructure/models"
 	"clube/infraestructure/database"
 	"github.com/go-chi/chi/v5"
@@ -35,7 +37,19 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
         return
     }
 
-	newUser := models.NewUser(userData.Name, userData.BirthDate, userData.Passwd, userData.Cep, userData.Email, userData.Phone)
+
+	if !functions.PhoneCheck(userData.Phone) {
+		http.Error(w, "Invalid phone", http.StatusBadRequest)
+		return
+	}
+
+	newUser := models.NewUser(
+		userData.Name, userData.Username, 
+		userData.Gender, userData.BirthDate, 
+		userData.Passwd, userData.Cep, 
+		userData.Email, userData.Phone,
+	)
+
 	err = newUser.Save(conn)
 
 	if err != nil {
@@ -104,15 +118,22 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 	}
 
 	if err := validate.Struct(userData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	user.Name = userData.Name
+	user.Username = userData.Username
+	user.Gender = userData.Gender
 	user.BirthDate = userData.BirthDate
 	user.Cep = userData.Cep
 	user.Email = userData.Email
 	user.Phone = userData.Phone
+
+	if !functions.PhoneCheck(user.Phone) {
+		http.Error(w, "Invalid phone number", http.StatusBadRequest)
+		return
+	}
 
 	err = user.Update(db)
 	if err != nil {
@@ -162,6 +183,20 @@ func UserSoftDelete(w http.ResponseWriter, app *http.Request) {
 
     w.Header().Set("Content-Type", "application/json")
     if err := json.NewEncoder(w).Encode(response); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+}
+
+func SignUp(w http.ResponseWriter, r *http.Request) {
+    tmpl, err := template.ParseFiles("templates/signup/signup.html")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    err = tmpl.Execute(w, nil)
+    if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }

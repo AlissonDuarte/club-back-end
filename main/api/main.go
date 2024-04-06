@@ -23,6 +23,8 @@ func main() {
 		w.Write([]byte("Hello World"))
 	})
 	
+	app.Get("/home/signup", views.SignUp)
+	
 	app.Post("/users", views.UserCreate)
 	app.Route("/user/{id}", func(app chi.Router) {
 		app.Get("/", views.UserRead)

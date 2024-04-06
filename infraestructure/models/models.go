@@ -1,14 +1,5 @@
 package models
 
-// defined structs of models
-// gorm.Model is a struct that contains the fields ID, CreatedAt, UpdatedAt, DeletedAt
-// ID is the primary key
-// CreatedAt is the field that will be filled with the creation date of the record
-// UpdatedAt is the field that will be filled with the date of the last update of the record
-// DeletedAt is the field that will be filled with the date of the deletion of the record
-// The fields CreatedAt, UpdatedAt and DeletedAt are filled automatically by GORM
-// The fields CreatedAt, UpdatedAt and DeletedAt are of the type time.Time
-// The field DeletedAt is filled with the date of the deletion of the record and is not deleted from the database | soft delete
 
 import (
 	"gorm.io/gorm"
@@ -18,6 +9,8 @@ import (
 type User struct {
 	gorm.Model 
 	Name      		string 
+	Username 		string `gorm:"unique"`
+	Gender 			string
 	BirthDate 		string 
 	PasswdHash    	string 
 	Cep       		string 
@@ -26,10 +19,12 @@ type User struct {
 }
 
 
-func NewUser(name string, birthDate string, passwd string, cep string, email string, phone string) *User {
+func NewUser(name string, username string, gender string, birthDate string, passwd string, cep string, email string, phone string) *User {
 
 	return &User{
 		Name: name,
+		Username: username,
+		Gender: gender,
 		BirthDate: birthDate,
 		PasswdHash: passwd,
 		Cep: cep,
