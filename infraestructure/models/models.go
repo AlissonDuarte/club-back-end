@@ -13,13 +13,12 @@ type User struct {
 	Gender 			string
 	BirthDate 		string 
 	PasswdHash    	string 
-	Cep       		string 
 	Email     		string `gorm:"unique"`
 	Phone     		string `gorm:"unique"` 
 }
 
 
-func NewUser(name string, username string, gender string, birthDate string, passwd string, cep string, email string, phone string) *User {
+func NewUser(name string, username string, gender string, birthDate string, passwd string, email string, phone string) *User {
 
 	return &User{
 		Name: name,
@@ -27,7 +26,6 @@ func NewUser(name string, username string, gender string, birthDate string, pass
 		Gender: gender,
 		BirthDate: birthDate,
 		PasswdHash: passwd,
-		Cep: cep,
 		Email: email,
 		Phone: phone,
 	}

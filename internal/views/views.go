@@ -1,6 +1,7 @@
 package views
 
 import (
+	"fmt"
 	"time"
 	"strconv"
     "net/http"
@@ -25,10 +26,13 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
 	var userData serializer.UserSerializer
 
+	fmt.Println(app.Body)
+	
 	err := json.NewDecoder(app.Body).Decode(&userData)
 	
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println("Error aqui1")
 		return
 	}
 
@@ -46,14 +50,15 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	newUser := models.NewUser(
 		userData.Name, userData.Username, 
 		userData.Gender, userData.BirthDate, 
-		userData.Passwd, userData.Cep, 
-		userData.Email, userData.Phone,
+		userData.Passwd,  userData.Email,
+		userData.Phone,
 	)
 
 	err = newUser.Save(conn)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println("Error aqui2")
 		return
 	}
 
@@ -62,6 +67,7 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 
 	if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println("Error aqui3")
         return
     }
 	w.Header().Set("Content-Type", "application/json")
@@ -69,6 +75,7 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	_, err = w.Write(jsonData)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println("Error aqui4")
         return
     }
 }
@@ -126,7 +133,6 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 	user.Username = userData.Username
 	user.Gender = userData.Gender
 	user.BirthDate = userData.BirthDate
-	user.Cep = userData.Cep
 	user.Email = userData.Email
 	user.Phone = userData.Phone
 
