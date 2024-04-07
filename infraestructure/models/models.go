@@ -39,9 +39,6 @@ func GeneratePasswordHash(password string) (string, error) {
     return string(hashedPassword), nil
 }
 
-func VerifyPassword(password, hash string) error {
-    return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-}
 
 func (u *User) BeforeSave(tx *gorm.DB) (err error) {
     if u.PasswdHash != "" {

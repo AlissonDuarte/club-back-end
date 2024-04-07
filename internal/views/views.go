@@ -1,7 +1,6 @@
 package views
 
 import (
-	"fmt"
 	"time"
 	"strconv"
     "net/http"
@@ -22,6 +21,7 @@ var response struct {
 	Message string `json:"message"`
 	Status string `json:"status"`
 	Code int `json:"code"`
+	Data interface{} `json:"data"`
 }
 
 func UserCreate(w http.ResponseWriter, app *http.Request) {
@@ -31,7 +31,6 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	err := json.NewDecoder(app.Body).Decode(&userData)
 	
 	if err != nil {
-		fmt.Println("Erro qui")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -57,7 +56,6 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	err = newUser.Save(conn)
 
 	if err != nil {
-		fmt.Println("Erro aqui")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -69,8 +67,6 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
-		fmt.Println("Erro aaqui")
-
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
@@ -78,7 +74,6 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 
 	_, err = w.Write(jsonData)
     if err != nil {
-		fmt.Println("Erro aaaqui")
 
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
@@ -217,4 +212,56 @@ func Home(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
+}
+
+func UserLogin(w http.ResponseWriter, r *http.Request) {
+
+	var userLoginData serializer.UserLoginSerializer
+
+	err := json.NewDecoder(r.Body).Decode(&userLoginData)
+
+	if err != nil {
+		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
+		return
+	}
+
+	if err := validate.Struct(userLoginData); err != nil {
+		http.Error(w, "Invalid data format", http.StatusBadRequest)
+		return
+	}
+
+	// buscar usuário pelo email filtrando
+	
+	conn := database.NewDb()
+	user, err := functions.FindUserByEmail(conn, userLoginData.Email)
+
+	if err != nil {
+		http.Error(w, "User not found with email: " + userLoginData.Email, http.StatusBadRequest)
+		return
+	}
+
+	// verificar se a senha está correta
+
+	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
+
+	if err != nil {
+		http.Error(w, "Invalid password", http.StatusBadRequest)
+		return
+	}
+	response.Message = "User logged in successfully!!"
+	response.Status = "success"
+	response.Code = http.StatusOK
+	
+	jsonData, err := json.Marshal(response)
+
+
+	w.Header().Set("Content-Type", "application/json")
+
+	_, err = w.Write(jsonData)
+    if err != nil {
+        http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)
+        return
+    }
+	return 
+
 }

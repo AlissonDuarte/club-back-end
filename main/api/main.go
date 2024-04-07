@@ -29,6 +29,7 @@ func main() {
 	
 	app.Post("/users", views.UserCreate)
 
+	app.Post("/user/login", views.UserLogin)
 	app.Route("/user/{id}", func(app chi.Router) {
 		app.Get("/", views.UserRead)
 		app.Put("/", views.UserUpdate)

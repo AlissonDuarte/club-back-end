@@ -1,3 +1,10 @@
+POST http://127.0.0.1:3000/user/login
+
+{
+"email":"alissonsailvamorimduarte@gmail.com",
+"passwd":"alissona123"
+}
+
 POST http://127.0.0.1:3000/users
 
 {
@@ -5,8 +12,8 @@ POST http://127.0.0.1:3000/users
 "username": "grimmjow",
 "email": "alissonsilvamorimduarte@gmail.com",
 "phone": "84996304813",
-"passwd": "teste1239",
-"confirm_password":	"teste1239",
+"passwd": "alisson123",
+"confirm_password":	"alisson123",
 "birth_date": "2024-04-12",
 "gender": "female"
 }

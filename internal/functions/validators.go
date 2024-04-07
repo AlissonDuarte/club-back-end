@@ -13,3 +13,4 @@ func PhoneCheck(phone string) bool {
 	phoneRegex := regexp.MustCompile(`^[0-9]{11}$`)
 	return phoneRegex.MatchString(phone)
 }
+
