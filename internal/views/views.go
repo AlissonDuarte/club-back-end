@@ -20,19 +20,19 @@ var validate = validator.New()
 
 var response struct {
 	Message string `json:"message"`
+	Status string `json:"status"`
+	Code int `json:"code"`
 }
 
 func UserCreate(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
 	var userData serializer.UserSerializer
-
-	fmt.Println(app.Body)
 	
 	err := json.NewDecoder(app.Body).Decode(&userData)
 	
 	if err != nil {
+		fmt.Println("Erro qui")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println("Error aqui1")
 		return
 	}
 
@@ -57,25 +57,30 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	err = newUser.Save(conn)
 
 	if err != nil {
+		fmt.Println("Erro aqui")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println("Error aqui2")
 		return
 	}
 
 	response.Message = "User created successfully!!"
+	response.Status = "success"
+	response.Code = http.StatusCreated
+
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
+		fmt.Println("Erro aaqui")
+
         http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println("Error aqui3")
         return
     }
 	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(jsonData)
     if err != nil {
+		fmt.Println("Erro aaaqui")
+
         http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println("Error aqui4")
         return
     }
 }
@@ -148,6 +153,9 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 	}
 
 	response.Message = "User updated successfully!!"
+	response.Status = "success"
+	response.Code = http.StatusOK
+
 	jsonData, err := json.Marshal(response)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -186,6 +194,8 @@ func UserSoftDelete(w http.ResponseWriter, app *http.Request) {
     }
 
     response.Message = "User deleted successfully!!"
+	response.Status = "success"
+	response.Code = http.StatusOK
 
     w.Header().Set("Content-Type", "application/json")
     if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -194,12 +204,13 @@ func UserSoftDelete(w http.ResponseWriter, app *http.Request) {
     }
 }
 
-func SignUp(w http.ResponseWriter, r *http.Request) {
-    tmpl, err := template.ParseFiles("templates/signup/signup.html")
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+
+func Home(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/home/home.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
     err = tmpl.Execute(w, nil)
     if err != nil {

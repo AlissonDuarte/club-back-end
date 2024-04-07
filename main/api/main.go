@@ -19,13 +19,16 @@ func main() {
 	app.Use(middleware.Recoverer)
 	app.Use(middleware.Throttle(1000))
 	
-	app.Get("/", func(w http.ResponseWriter, app *http.Request) {
-		w.Write([]byte("Hello World"))
-	})
-	
-	app.Get("/home/signup", views.SignUp)
+	fileServer := http.FileServer(http.Dir("./templates/imgs"))
+	htmlServer := http.FileServer(http.Dir("./templates"))
+
+    app.Handle("/*", http.StripPrefix("/", fileServer))
+	app.Handle("/*", http.StripPrefix("/", htmlServer))
+
+	app.Get("/home", views.Home)
 	
 	app.Post("/users", views.UserCreate)
+
 	app.Route("/user/{id}", func(app chi.Router) {
 		app.Get("/", views.UserRead)
 		app.Put("/", views.UserUpdate)

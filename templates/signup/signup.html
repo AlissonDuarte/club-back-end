@@ -44,7 +44,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="exampleModal">
         <h2>Sign Up</h2>
         <form id="signupForm">
             <input type="text" name="name" placeholder="Name">
@@ -99,7 +99,7 @@
                 if (data.success) {
                     window.location.href = "/outra-pagina";
                 } else {
-                    alert("Erro: " + data.error);
+                    alert("Erro11: " + data.error);
                 }
             })
             .catch(error => {
