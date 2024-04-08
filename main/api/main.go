@@ -1,32 +1,34 @@
 package main
 
 import (
-    "net/http"
-	"clube/internal/views"
 	"clube/infraestructure/database"
 	"clube/infraestructure/models"
-    "github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-)
+	"clube/internal/views"
+	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/cors"
+)
 
 func main() {
 	// Call the function
 	conn := database.NewDb()
 	app := chi.NewRouter()
+	app.Use(cors.AllowAll().Handler)
 	app.Use(JWTMiddleware)
 	app.Use(middleware.Logger)
 	app.Use(middleware.Recoverer)
 	app.Use(middleware.Throttle(1000))
-	
+
 	fileServer := http.FileServer(http.Dir("./templates/imgs"))
 	htmlServer := http.FileServer(http.Dir("./templates"))
 
-    app.Handle("/*", http.StripPrefix("/", fileServer))
+	app.Handle("/*", http.StripPrefix("/", fileServer))
 	app.Handle("/*", http.StripPrefix("/", htmlServer))
 
 	app.Get("/home", views.Home)
-	
+
 	app.Post("/users", views.UserCreate)
 
 	app.Post("/user/login", views.UserLogin)
@@ -34,9 +36,9 @@ func main() {
 		app.Get("/", views.UserRead)
 		app.Put("/", views.UserUpdate)
 		app.Delete("/", views.UserSoftDelete)
-		})
-	
-	err :=	models.Migrate(conn)
+	})
+
+	err := models.Migrate(conn)
 	if err != nil {
 		panic(err)
 	}

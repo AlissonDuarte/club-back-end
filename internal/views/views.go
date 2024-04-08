@@ -1,45 +1,45 @@
 package views
 
 import (
-	"time"
-	"strconv"
-    "net/http"
-	"html/template"
-    "encoding/json"
-	"gorm.io/gorm"
-	"clube/internal/serializer"
-	"clube/internal/functions"
-	"clube/infraestructure/models"
 	"clube/infraestructure/database"
+	"clube/infraestructure/models"
+	"clube/internal/functions"
+	"clube/internal/serializer"
+	"encoding/json"
+	"html/template"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"gorm.io/gorm"
 )
 
 var validate = validator.New()
 
 var response struct {
-	Message string `json:"message"`
-	Status string `json:"status"`
-	Code int `json:"code"`
-	Data interface{} `json:"data"`
+	Message string      `json:"message"`
+	Status  string      `json:"status"`
+	Code    int         `json:"code"`
+	Data    interface{} `json:"data"`
 }
 
 func UserCreate(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
 	var userData serializer.UserSerializer
-	
+
 	err := json.NewDecoder(app.Body).Decode(&userData)
-	
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-    if err := validate.Struct(userData); err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
-
+	if err := validate.Struct(userData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if !functions.PhoneCheck(userData.Phone) {
 		http.Error(w, "Invalid phone", http.StatusBadRequest)
@@ -47,9 +47,9 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	}
 
 	newUser := models.NewUser(
-		userData.Name, userData.Username, 
-		userData.Gender, userData.BirthDate, 
-		userData.Passwd,  userData.Email,
+		userData.Name, userData.Username,
+		userData.Gender, userData.BirthDate,
+		userData.Passwd, userData.Email,
 		userData.Phone,
 	)
 
@@ -67,37 +67,37 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(jsonData)
-    if err != nil {
+	if err != nil {
 
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func UserRead(w http.ResponseWriter, app *http.Request) {
-    userIDStr := chi.URLParam(app, "id")
-    userID, err := strconv.Atoi(userIDStr)
-    if err != nil {
-        http.Error(w, "Invalid user ID", http.StatusBadRequest)
-        return
-    }
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
 
-    db := database.NewDb()
+	db := database.NewDb()
 
-    user, err := models.UserGetById(db, userID)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+	user, err := models.UserGetById(db, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(user)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
 
 func UserUpdate(w http.ResponseWriter, app *http.Request) {
@@ -166,39 +166,38 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 }
 
 func UserSoftDelete(w http.ResponseWriter, app *http.Request) {
-    userIDStr := chi.URLParam(app, "id")
-    userID, err := strconv.Atoi(userIDStr)
-    if err != nil {
-        http.Error(w, "Invalid user ID", http.StatusBadRequest)
-        return
-    }
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
 
-    db := database.NewDb()
+	db := database.NewDb()
 
-    user, err := models.UserGetById(db, userID)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+	user, err := models.UserGetById(db, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    user.DeletedAt = gorm.DeletedAt{Time: time.Now(), Valid: true}
+	user.DeletedAt = gorm.DeletedAt{Time: time.Now(), Valid: true}
 
-    if err := user.Update(db); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	if err := user.Update(db); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    response.Message = "User deleted successfully!!"
+	response.Message = "User deleted successfully!!"
 	response.Status = "success"
 	response.Code = http.StatusOK
 
-    w.Header().Set("Content-Type", "application/json")
-    if err := json.NewEncoder(w).Encode(response); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
-
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/home/home.html")
@@ -207,11 +206,11 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    err = tmpl.Execute(w, nil)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func UserLogin(w http.ResponseWriter, r *http.Request) {
@@ -221,22 +220,61 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&userLoginData)
 
 	if err != nil {
-		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
+		response.Message = "Invalid JSON data"
+		response.Status = "error"
+		response.Code = http.StatusBadRequest
+
+		jsonData, err := json.Marshal(response)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(jsonData)
 		return
 	}
 
 	if err := validate.Struct(userLoginData); err != nil {
-		http.Error(w, "Invalid data format", http.StatusBadRequest)
+		response.Message = "Invalid data format"
+		response.Status = "error"
+		response.Code = http.StatusBadRequest
+
+		jsonData, err := json.Marshal(response)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(jsonData)
 		return
 	}
 
 	// buscar usuário pelo email filtrando
-	
+
 	conn := database.NewDb()
 	user, err := functions.FindUserByEmail(conn, userLoginData.Email)
 
 	if err != nil {
-		http.Error(w, "User not found with email: " + userLoginData.Email, http.StatusBadRequest)
+
+		response.Message = "User with email not found: " + userLoginData.Email
+		response.Status = "error"
+		response.Code = http.StatusBadRequest
+
+		jsonData, err := json.Marshal(response)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(jsonData)
 		return
 	}
 
@@ -245,23 +283,34 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
 
 	if err != nil {
-		http.Error(w, "Invalid password", http.StatusBadRequest)
-		return
+		response.Message = "User logged in successfully!!"
+		response.Status = "success"
+		response.Code = http.StatusOK
+
+		jsonData, err := json.Marshal(response)
+
+		w.Header().Set("Content-Type", "application/json")
+
+		_, err = w.Write(jsonData)
+
+		if err != nil {
+			http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)
+			return
+		}
 	}
+
 	response.Message = "User logged in successfully!!"
 	response.Status = "success"
 	response.Code = http.StatusOK
-	
-	jsonData, err := json.Marshal(response)
 
+	jsonData, err := json.Marshal(response)
 
 	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(jsonData)
-    if err != nil {
-        http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)
-        return
-    }
-	return 
+	if err != nil {
+		http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)
+		return
+	}
 
 }
