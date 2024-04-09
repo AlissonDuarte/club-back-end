@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type AdminClub struct {
+type UserClub struct {
 	gorm.Model
 	UserID    uint
 	ClubID    uint
