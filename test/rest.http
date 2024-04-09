@@ -1,3 +1,10 @@
+GET http://127.0.0.1:3000/home
+{
+    "Content-Type: application/json"
+    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdG5hbWUiOiJwaXBwbzIiLCJsYXN0bmFtZSI6InBpcHBvMyIsInVzZXJuYW1lIjoicGlwcG8xZiJ9.MkcI4JNUgoOeMzJUhDe4dLOsK3zXSAGC9fCV5EqwA98"
+}
+
+
 POST http://127.0.0.1:3000/user/login
 
 {

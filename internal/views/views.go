@@ -73,6 +73,7 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(jsonData)
+
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -289,6 +290,11 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 
 		jsonData, err := json.Marshal(response)
 
+		if err != nil {
+			http.Error(w, "Error to format response data, try again later", http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 
 		_, err = w.Write(jsonData)
@@ -298,6 +304,26 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	userJWT, err := functions.GenerateJWT(int(user.ID))
+
+	if err != nil {
+		response.Message = "Cannot generate jwt token"
+		response.Status = "error"
+		response.Code = http.StatusInternalServerError
+
+		jsonData, err := json.Marshal(response)
+
+		if err != nil {
+			http.Error(w, "Error to format data to response, try again later", http.StatusInternalServerError)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(jsonData)
+
+		if err != nil {
+			http.Error(w, "Error to respnse data, try again later", http.StatusInternalServerError)
+		}
+	}
 
 	response.Message = "User logged in successfully!!"
 	response.Status = "success"
@@ -305,8 +331,13 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 
 	jsonData, err := json.Marshal(response)
 
-	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		http.Error(w, "Error to format response data, try again later", http.StatusInternalServerError)
+		return
+	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Authorization", "Bearer "+userJWT)
 	_, err = w.Write(jsonData)
 	if err != nil {
 		http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)

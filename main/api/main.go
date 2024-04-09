@@ -3,6 +3,7 @@ package main
 import (
 	"clube/infraestructure/database"
 	"clube/infraestructure/models"
+	"clube/internal/middles"
 	"clube/internal/views"
 	"net/http"
 
@@ -16,7 +17,6 @@ func main() {
 	conn := database.NewDb()
 	app := chi.NewRouter()
 	app.Use(cors.AllowAll().Handler)
-	app.Use(JWTMiddleware)
 	app.Use(middleware.Logger)
 	app.Use(middleware.Recoverer)
 	app.Use(middleware.Throttle(1000))
@@ -27,15 +27,20 @@ func main() {
 	app.Handle("/*", http.StripPrefix("/", fileServer))
 	app.Handle("/*", http.StripPrefix("/", htmlServer))
 
-	app.Get("/home", views.Home)
-
 	app.Post("/users", views.UserCreate)
-
+	app.Get("/home", views.Home)
 	app.Post("/user/login", views.UserLogin)
-	app.Route("/user/{id}", func(app chi.Router) {
-		app.Get("/", views.UserRead)
-		app.Put("/", views.UserUpdate)
-		app.Delete("/", views.UserSoftDelete)
+
+	app.Group(func(app chi.Router) {
+		// protected views by jwt
+		app.Use(middles.AuthMiddleware)
+
+		app.Route("/user/{id}", func(app chi.Router) {
+			app.Get("/", views.UserRead)
+			app.Put("/", views.UserUpdate)
+			app.Delete("/", views.UserSoftDelete)
+		})
+
 	})
 
 	err := models.Migrate(conn)
@@ -44,12 +49,4 @@ func main() {
 	}
 
 	http.ListenAndServe(":3000", app)
-}
-
-func JWTMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, app *http.Request) {
-		// before
-		next.ServeHTTP(w, app)
-		// after
-	})
 }
