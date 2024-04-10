@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func ClubCreate(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +28,6 @@ func ClubCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(clubData)
 	newClub := models.NewClub(
 		clubData.Name,
 		clubData.Description,
@@ -53,4 +55,26 @@ func ClubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(jsonData)
 	w.WriteHeader(http.StatusCreated)
+}
+
+func ClubRead(w http.ResponseWriter, app *http.Request) {
+	clubIDStr := chi.URLParam(app, "id")
+	clubID, err := strconv.Atoi(clubIDStr)
+
+	if err != nil {
+		http.Error(w, "Invalid club ID", http.StatusBadRequest)
+		return
+	}
+
+	db := database.NewDb()
+
+	club, err := models.ClubGetById(db, clubID)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(club)
 }

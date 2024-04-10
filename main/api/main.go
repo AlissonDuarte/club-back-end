@@ -41,7 +41,10 @@ func main() {
 			app.Delete("/", views.UserSoftDelete)
 		})
 
-		app.Post("/groups", views.ClubCreate)
+		app.Post("/clubs", views.ClubCreate)
+		app.Route("/club/{id}", func(app chi.Router) {
+			app.Get("/", views.ClubRead)
+		})
 	})
 
 	err := models.Migrate(conn)

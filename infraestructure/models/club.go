@@ -38,3 +38,15 @@ func (c *Club) Save(db *gorm.DB) error {
 func (c *Club) Update(db *gorm.DB) error {
 	return db.Save(c).Error
 }
+
+func ClubGetById(db *gorm.DB, id int) (*Club, error) {
+	var club Club
+
+	err := db.Preload("Owner").First(&club, id).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &club, nil
+}
