@@ -7,11 +7,11 @@ type Club struct {
 	gorm.Model
 	Name        string
 	Description string
-	Owner       uint
+	OwnerID     uint
 	Users       []*User `gorm:"many2many:user_club;"`
 }
 
-func NewGroup(name string, description string, userIds []int, db *gorm.DB) *Club {
+func NewClub(name string, description string, userIds []int, owner uint, db *gorm.DB) *Club {
 	users := []*User{}
 
 	for _, userID := range userIds {
@@ -27,6 +27,7 @@ func NewGroup(name string, description string, userIds []int, db *gorm.DB) *Club
 		Name:        name,
 		Description: description,
 		Users:       users,
+		OwnerID:     owner,
 	}
 }
 

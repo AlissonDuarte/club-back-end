@@ -41,6 +41,7 @@ func main() {
 			app.Delete("/", views.UserSoftDelete)
 		})
 
+		app.Post("/groups", views.ClubCreate)
 	})
 
 	err := models.Migrate(conn)

@@ -8,7 +8,7 @@ import (
 
 type UserClub struct {
 	gorm.Model
-	UserID    uint
-	ClubID    uint
-	AdminDate time.Time
+	UserID   uint
+	ClubID   uint
+	CreateAt time.Time
 }
