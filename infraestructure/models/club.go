@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 // Grupo
 type Club struct {
@@ -8,6 +10,7 @@ type Club struct {
 	Name        string
 	Description string
 	OwnerID     uint
+	OwnerRefer  User    `gorm:"foreignKey:OwnerID"`
 	Users       []*User `gorm:"many2many:user_club;"`
 }
 
@@ -41,8 +44,12 @@ func (c *Club) Update(db *gorm.DB) error {
 
 func ClubGetById(db *gorm.DB, id int) (*Club, error) {
 	var club Club
-
-	err := db.Preload("Owner").First(&club, id).Error
+	err := db.Preload("OwnerRefer",
+		func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("ID", "Username", "Gender", "BirthDate")
+		}).Preload("Users", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("ID", "Username", "Gender", "BirthDate")
+	}).First(&club, id).Error
 
 	if err != nil {
 		return nil, err

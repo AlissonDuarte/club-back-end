@@ -44,6 +44,8 @@ func main() {
 		app.Post("/clubs", views.ClubCreate)
 		app.Route("/club/{id}", func(app chi.Router) {
 			app.Get("/", views.ClubRead)
+			app.Put("/", views.ClubUpdate)
+			app.Delete("/", views.ClubSoftDelete)
 		})
 	})
 

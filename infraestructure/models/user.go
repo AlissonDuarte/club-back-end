@@ -60,7 +60,18 @@ func (u *User) Update(db *gorm.DB) error {
 
 func UserGetById(db *gorm.DB, id int) (*User, error) {
 	var user User
-	err := db.First(&user, id).Error
+	err := db.Select("id",
+		"email",
+		"phone",
+		"username",
+		"name",
+		"gender",
+		"created_at",
+		"birth_date",
+	).Preload("Clubs", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id", "name", "created_at")
+	}).First(&user, id).Error
+
 	if err != nil {
 		return nil, err
 	}
