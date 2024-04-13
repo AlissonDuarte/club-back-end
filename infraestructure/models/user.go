@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -50,8 +52,39 @@ func (u *User) BeforeSave(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func (u *User) Save(db *gorm.DB) error {
-	return db.Create(u).Error
+func (u *User) Save(db *gorm.DB) (uint, error) {
+
+	var existingUser User
+	err := db.Where("username = ?", u.Username).First(&existingUser).Error
+	if err == nil {
+		return 0, errors.New("this username already exists")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return 0, err
+	}
+
+	err = db.Where("email = ?", u.Email).First(&existingUser).Error
+	if err == nil {
+		return 0, errors.New("this email already exists")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return 0, err
+	}
+
+	err = db.Where("phone = ?", u.Phone).First(&existingUser).Error
+	if err == nil {
+		return 0, errors.New("this phone number already exists")
+
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return 0, err
+	}
+
+	err = db.Create(u).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return u.ID, nil
 }
 
 func (u *User) Update(db *gorm.DB) error {

@@ -26,7 +26,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		tokenClean, err := extractToken(tokenString)
 		if err != nil {
 
-			w.WriteHeader(http.StatusBadGateway)
+			w.WriteHeader(http.StatusForbidden)
 		}
 
 		if tokenClean == "" {

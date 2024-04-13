@@ -32,12 +32,30 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	err := json.NewDecoder(app.Body).Decode(&userData)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.Message = "Cannot validated your data"
+		response.Status = "Failed"
+		response.Code = http.StatusBadRequest
+		response.Data = err.Error()
+		jsonData, err := json.Marshal(response)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(jsonData)
+
 		return
 	}
 
 	if err := validate.Struct(userData); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !functions.ValidGender(userData.Gender) {
+		http.Error(w, "Invalid Gender", http.StatusBadRequest)
 		return
 	}
 
@@ -53,7 +71,7 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 		userData.Phone,
 	)
 
-	err = newUser.Save(conn)
+	userID, err := newUser.Save(conn)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -63,6 +81,9 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	response.Message = "User created successfully!!"
 	response.Status = "success"
 	response.Code = http.StatusCreated
+	response.Data = map[string]interface{}{
+		"userID": userID,
+	}
 
 	jsonData, err := json.Marshal(response)
 
