@@ -37,7 +37,7 @@ func main() {
 
 		app.Route("/user/{id}", func(app chi.Router) {
 			app.Get("/", views.UserRead)
-			app.Put("/", views.UserUpdate)
+			app.Patch("/", views.UserUpdate)
 			app.Delete("/", views.UserSoftDelete)
 		})
 

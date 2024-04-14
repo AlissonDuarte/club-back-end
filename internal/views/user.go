@@ -129,7 +129,6 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-
 	db := database.NewDb()
 
 	user, err := models.UserGetById(db, userID)
@@ -138,7 +137,7 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
-	var userData serializer.UserSerializer
+	var userData serializer.UserUpdateSerializer
 
 	err = json.NewDecoder(app.Body).Decode(&userData)
 	if err != nil {
@@ -157,13 +156,15 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 	user.BirthDate = userData.BirthDate
 	user.Email = userData.Email
 	user.Phone = userData.Phone
+	user.Bio = userData.Bio
+	user.UpdatedAt = time.Now()
 
 	if !functions.PhoneCheck(user.Phone) {
 		http.Error(w, "Invalid phone number", http.StatusBadRequest)
 		return
 	}
 
-	err = user.Update(db)
+	err = user.Update(db, "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -205,7 +206,7 @@ func UserSoftDelete(w http.ResponseWriter, app *http.Request) {
 
 	user.DeletedAt = gorm.DeletedAt{Time: time.Now(), Valid: true}
 
-	if err := user.Update(db); err != nil {
+	if err := user.Update(db, ""); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -305,9 +306,9 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
 
 	if err != nil {
-		response.Message = "User logged in successfully!!"
-		response.Status = "success"
-		response.Code = http.StatusOK
+		response.Message = "Invalid password!!"
+		response.Status = "failed"
+		response.Code = http.StatusBadRequest
 
 		jsonData, err := json.Marshal(response)
 
@@ -349,7 +350,10 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	response.Message = "User logged in successfully!!"
 	response.Status = "success"
 	response.Code = http.StatusOK
-
+	response.Data = map[string]interface{}{
+		"userID":  user.ID,
+		"userJWT": userJWT,
+	}
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
@@ -358,7 +362,6 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Authorization", "Bearer "+userJWT)
 	_, err = w.Write(jsonData)
 	if err != nil {
 		http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)

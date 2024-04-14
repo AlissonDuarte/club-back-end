@@ -1,3 +1,15 @@
+PATCH http://127.0.0.1:3000/user/74
+
+{
+"name": "AlissoTeste",
+"username": "grimmjow",
+"email": "alissonsilvamorimduarte@gmail.com",
+"phone": "84996304813",
+"passwd": "alisson123",
+"confirm_password":	"alisson123",
+"birth_date": "2024-04-12",
+"gender": "f"
+}
 GET http://127.0.0.1:3000/home
 {
     "Content-Type: application/json"

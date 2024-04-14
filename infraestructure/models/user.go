@@ -16,6 +16,7 @@ type User struct {
 	PasswdHash string
 	Email      string  `gorm:"unique"`
 	Phone      string  `gorm:"unique"`
+	Bio        string  `gorm:"default:null"`
 	Clubs      []*Club `gorm:"many2many:user_club;"`
 	ClubOnwer  []*Club `gorm:"many2many:owner_club;"`
 }
@@ -34,6 +35,11 @@ func NewUser(name string, username string, gender string, birthDate string, pass
 }
 
 func GeneratePasswordHash(password string) (string, error) {
+
+	if len(password) < 8 || len(password) > 72 {
+		return "", errors.New("password must be between 8 and 72 characters")
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -87,8 +93,50 @@ func (u *User) Save(db *gorm.DB) (uint, error) {
 	return u.ID, nil
 }
 
-func (u *User) Update(db *gorm.DB) error {
-	return db.Save(u).Error
+func (u *User) Update(db *gorm.DB, newPassword string) error {
+	// Verificar se o usuário não está mudando o username, phone ou email para um que já existe no banco de dados
+	var existingUser User
+	err := db.Where("username = ? AND id != ?", u.Username, u.ID).First(&existingUser).Error
+	if err == nil {
+		return errors.New("this username already exists")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	// pegar senha atual caso a senha enviada seja vazia
+	// associar esta senha para ser cadastrada no banco novamente
+
+	err = db.Select("passwd_hash").First(&existingUser, u.ID).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Where("email = ? AND id != ?", u.Email, u.ID).First(&existingUser).Error
+	if err == nil {
+		return errors.New("this email already exists")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	err = db.Where("phone = ? AND id != ?", u.Phone, u.ID).First(&existingUser).Error
+	if err == nil {
+		return errors.New("this phone number already exists")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	// Tratamento da senha
+	if newPassword == "" {
+		u.PasswdHash = existingUser.PasswdHash
+	}
+
+	// Atualizar os dados do usuário
+	err = db.Save(u).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func UserGetById(db *gorm.DB, id int) (*User, error) {
@@ -101,6 +149,7 @@ func UserGetById(db *gorm.DB, id int) (*User, error) {
 		"gender",
 		"created_at",
 		"birth_date",
+		"bio",
 	).Preload("Clubs", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id", "name", "created_at")
 	}).First(&user, id).Error
