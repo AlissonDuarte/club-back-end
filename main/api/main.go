@@ -21,11 +21,13 @@ func main() {
 	app.Use(middleware.Recoverer)
 	app.Use(middleware.Throttle(1000))
 
-	fileServer := http.FileServer(http.Dir("./templates/imgs"))
-	htmlServer := http.FileServer(http.Dir("./templates"))
+	fileServer := http.FileServer(http.Dir("."))
 
-	app.Handle("/*", http.StripPrefix("/", fileServer))
-	app.Handle("/*", http.StripPrefix("/", htmlServer))
+	app.Handle("/files/*", http.StripPrefix("/files/", fileServer))
+	app.Handle("/images/*", http.StripPrefix("/images/", fileServer))
+	app.Handle("/images/users/*", http.StripPrefix("/images/users/", fileServer))
+	app.Handle("/images/clubs/*", http.StripPrefix("/images/clubs/", fileServer))
+	app.Handle("/images/posts/*", http.StripPrefix("/images/posts/", fileServer))
 
 	app.Post("/users", views.UserCreate)
 	app.Get("/home", views.Home)
@@ -39,6 +41,8 @@ func main() {
 			app.Get("/", views.UserRead)
 			app.Patch("/", views.UserUpdate)
 			app.Delete("/", views.UserSoftDelete)
+
+			app.Post("/images/user", views.UserUploadProfilePicture)
 		})
 
 		app.Post("/clubs", views.ClubCreate)

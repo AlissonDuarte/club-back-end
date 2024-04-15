@@ -6,8 +6,12 @@ import (
 	"clube/internal/functions"
 	"clube/internal/serializer"
 	"encoding/json"
+	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -368,4 +372,84 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+func UserUploadProfilePicture(w http.ResponseWriter, app *http.Request) {
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+	var errorMessage string
+
+	if app.Method != "POST" {
+		errorMessage = "Method Not Allowed"
+		errorMessage = fmt.Sprintf("Method Not Allowed: %s", app.Method)
+		http.Error(w, errorMessage, http.StatusMethodNotAllowed)
+		return
+	}
+
+	err = app.ParseMultipartForm(10 << 20) // Limite de 10 MB
+	if err != nil {
+		errorMessage = "Error to read file"
+		errorMessage = fmt.Sprintf("Error to read file: %s", err.Error())
+		http.Error(w, errorMessage, http.StatusInternalServerError)
+		return
+	}
+
+	// Obtém o arquivo enviado
+	file, fileData, err := app.FormFile("file")
+	if err != nil {
+		errorMessage = "Error to get file"
+		errorMessage = fmt.Sprintf("Error to get file: %s", err.Error())
+		http.Error(w, errorMessage, http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// Diretório onde os arquivos serão salvos
+	uploadDir := "./uploads"
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		http.Error(w, fmt.Sprintf("Error to create upload directory: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Cria um novo arquivo no servidor
+	filePath, err := os.OpenFile(filepath.Join(uploadDir, functions.GenerateKeys(16)+".png"), os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		errorMessage = "Error to create file"
+		errorMessage = fmt.Sprintf("Error to create file: %s", err.Error())
+		http.Error(w, errorMessage, http.StatusInternalServerError)
+		return
+	}
+	defer filePath.Close()
+
+	// Copia o conteúdo do arquivo recebido para o novo arquivo no servidor
+	_, err = io.Copy(filePath, file)
+	if err != nil {
+		errorMessage = "Error to copy file content"
+		errorMessage = fmt.Sprintf("Error to copy file content: %s", err.Error())
+		http.Error(w, errorMessage, http.StatusInternalServerError)
+		return
+	}
+
+	// Salva as informações do arquivo no banco de dados
+	db := database.NewDb()
+
+	upload := models.UserUpload{
+		UserID:      userID,
+		FilePath:    filePath.Name(),
+		FileSize:    fileData.Size,
+		ContentType: fileData.Header.Get("Content-Type"),
+	}
+
+	if err := db.Create(&upload).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error saving file to database: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Responde com uma mensagem de sucesso
+	fmt.Fprintf(w, "Upload %s with success", fileData.Filename)
 }

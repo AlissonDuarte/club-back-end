@@ -8,6 +8,7 @@ func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&User{},
 		&Club{},
+		&UserUpload{},
 	)
 	if err != nil {
 		return err
