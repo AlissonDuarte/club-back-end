@@ -43,6 +43,7 @@ func main() {
 			app.Delete("/", views.UserSoftDelete)
 
 			app.Post("/images/user", views.UserUploadProfilePicture)
+			app.Get("/images/user", views.UserProfilePicture)
 		})
 
 		app.Post("/clubs", views.ClubCreate)

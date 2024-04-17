@@ -1,3 +1,10 @@
+POST http://127.0.0.1:3000/user/login
+
+{
+"email":"sasha@gmail.com",
+"passwd":"12345678"
+}
+
 PATCH http://127.0.0.1:3000/user/74
 
 {
@@ -17,12 +24,7 @@ GET http://127.0.0.1:3000/home
 }
 
 
-POST http://127.0.0.1:3000/user/login
 
-{
-"email":"alissonsailvamorimduarte@gmail.com",
-"passwd":"alissona123"
-}
 
 POST http://127.0.0.1:3000/users
 

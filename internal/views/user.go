@@ -106,6 +106,43 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 	}
 }
 
+func UserProfilePicture(w http.ResponseWriter, app *http.Request) {
+	userIDStr := chi.URLParam(app, "id")
+	fmt.Println(userIDStr)
+	userID, err := strconv.Atoi(userIDStr)
+	fmt.Println(userID)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	db := database.NewDb()
+
+	user_picture, err := models.GetUserUploadByUserID(db, userID)
+	fmt.Println(user_picture)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(user_picture.FilePath)
+	if user_picture.FilePath == "" {
+		http.Error(w, "No profile picture found", http.StatusNotFound)
+		return
+	}
+
+	file, err := os.Open(user_picture.FilePath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer file.Close()
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	io.Copy(w, file)
+}
+
 func UserRead(w http.ResponseWriter, app *http.Request) {
 	userIDStr := chi.URLParam(app, "id")
 	userID, err := strconv.Atoi(userIDStr)
@@ -241,125 +278,52 @@ func Home(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserLogin(w http.ResponseWriter, r *http.Request) {
-
 	var userLoginData serializer.UserLoginSerializer
-
 	err := json.NewDecoder(r.Body).Decode(&userLoginData)
-
 	if err != nil {
-		response.Message = "Invalid JSON data"
-		response.Status = "error"
-		response.Code = http.StatusBadRequest
-
-		jsonData, err := json.Marshal(response)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(jsonData)
+		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
 		return
 	}
 
 	if err := validate.Struct(userLoginData); err != nil {
-		response.Message = "Invalid data format"
-		response.Status = "error"
-		response.Code = http.StatusBadRequest
-
-		jsonData, err := json.Marshal(response)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(jsonData)
+		http.Error(w, "Invalid data format", http.StatusBadRequest)
 		return
 	}
-
-	// buscar usuário pelo email filtrando
 
 	conn := database.NewDb()
 	user, err := functions.FindUserByEmail(conn, userLoginData.Email)
-
 	if err != nil {
-
-		response.Message = "User with email not found: " + userLoginData.Email
-		response.Status = "error"
-		response.Code = http.StatusBadRequest
-
-		jsonData, err := json.Marshal(response)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(jsonData)
+		http.Error(w, "User with email not found: "+userLoginData.Email, http.StatusBadRequest)
 		return
 	}
 
-	// verificar se a senha está correta
-
 	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
-
 	if err != nil {
-		response.Message = "Invalid password!!"
-		response.Status = "failed"
-		response.Code = http.StatusBadRequest
-
-		jsonData, err := json.Marshal(response)
-
-		if err != nil {
-			http.Error(w, "Error to format response data, try again later", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-
-		_, err = w.Write(jsonData)
-
-		if err != nil {
-			http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)
-			return
-		}
+		http.Error(w, "Invalid password", http.StatusUnauthorized)
+		return
 	}
+
 	userJWT, err := functions.GenerateJWT(int(user.ID))
-
 	if err != nil {
-		response.Message = "Cannot generate jwt token"
-		response.Status = "error"
-		response.Code = http.StatusInternalServerError
-
-		jsonData, err := json.Marshal(response)
-
-		if err != nil {
-			http.Error(w, "Error to format data to response, try again later", http.StatusInternalServerError)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write(jsonData)
-
-		if err != nil {
-			http.Error(w, "Error to respnse data, try again later", http.StatusInternalServerError)
-		}
+		http.Error(w, "Cannot generate jwt token", http.StatusInternalServerError)
+		return
 	}
 
-	response.Message = "User logged in successfully!!"
-	response.Status = "success"
-	response.Code = http.StatusOK
-	response.Data = map[string]interface{}{
-		"userID":  user.ID,
-		"userJWT": userJWT,
+	response := struct {
+		Message string      `json:"message"`
+		Status  string      `json:"status"`
+		Code    int         `json:"code"`
+		Data    interface{} `json:"data,omitempty"`
+	}{
+		Message: "User logged in successfully!!",
+		Status:  "success",
+		Code:    http.StatusOK,
+		Data: map[string]interface{}{
+			"userID":  user.ID,
+			"userJWT": userJWT,
+		},
 	}
 	jsonData, err := json.Marshal(response)
-
 	if err != nil {
 		http.Error(w, "Error to format response data, try again later", http.StatusInternalServerError)
 		return
@@ -371,7 +335,6 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error to response data, try again later", http.StatusInternalServerError)
 		return
 	}
-
 }
 
 func UserUploadProfilePicture(w http.ResponseWriter, app *http.Request) {
