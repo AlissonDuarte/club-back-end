@@ -9,6 +9,9 @@ func Migrate(db *gorm.DB) error {
 		&User{},
 		&Club{},
 		&UserUpload{},
+		&UserUploadPost{},
+		&Post{},
+		&Comment{},
 	)
 	if err != nil {
 		return err

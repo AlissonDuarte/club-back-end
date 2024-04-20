@@ -119,13 +119,11 @@ func UserProfilePicture(w http.ResponseWriter, app *http.Request) {
 	db := database.NewDb()
 
 	user_picture, err := models.GetUserUploadByUserID(db, userID)
-	fmt.Println(user_picture)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println(user_picture.FilePath)
 	if user_picture.FilePath == "" {
 		http.Error(w, "No profile picture found", http.StatusNotFound)
 		return

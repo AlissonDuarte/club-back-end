@@ -5,7 +5,6 @@ import (
 	"clube/infraestructure/models"
 	"clube/internal/serializer"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -18,7 +17,6 @@ func ClubCreate(w http.ResponseWriter, r *http.Request) {
 	var clubData serializer.GroupSerializer
 	err := json.NewDecoder(r.Body).Decode(&clubData)
 	if err != nil {
-		fmt.Println("Error aqui")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
