@@ -15,8 +15,15 @@ import (
 )
 
 func PostCreate(w http.ResponseWriter, app *http.Request) {
-	userIDStr := chi.URLParam(app, "id")
+	postContent := app.FormValue("content")
+	postTitle := app.FormValue("title")
+	userIDStr := app.FormValue("userID")
 	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+		return
+	}
+
 	userIDUint, err := strconv.ParseUint(userIDStr, 10, 64)
 
 	if err != nil {
@@ -45,7 +52,7 @@ func PostCreate(w http.ResponseWriter, app *http.Request) {
 	}
 	defer file.Close()
 
-	uploadDir := "./uploads"
+	uploadDir := "./uploads/post"
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		http.Error(w, fmt.Sprintf("Error to create upload directory: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -62,30 +69,27 @@ func PostCreate(w http.ResponseWriter, app *http.Request) {
 
 	db := database.NewDb()
 
-	postContent := app.FormValue("content")
-	postTitle := app.FormValue("title")
+	upload := models.UserUploadPost{
+		UserID:   uint(userID),
+		FilePath: filePath.Name(),
+		FileSize: fileData.Size,
+	}
+
+	if err := db.Create(&upload).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error while saving file to database: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
 
 	newPost := models.NewPost(
 		postTitle,
 		postContent,
 		uint(userIDUint),
+		upload.ID,
 		conn,
 	)
 
 	if err := conn.Create(&newPost).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	upload := models.UserUploadPost{
-		UserID:   uint(userID),
-		FilePath: filePath.Name(),
-		FileSize: fileData.Size,
-		PostID:   newPost.ID,
-	}
-
-	if err := db.Create(&upload).Error; err != nil {
-		http.Error(w, fmt.Sprintf("Error saving file to database: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -102,4 +106,28 @@ func PostCreate(w http.ResponseWriter, app *http.Request) {
 
 	}
 	w.Write(jsonData)
+}
+
+// leitura de post pelo ID do post
+// para abrir comentários, likes e etc
+func PostRead(w http.ResponseWriter, app *http.Request) {
+	postIDStr := chi.URLParam(app, "id")
+	postID, err := strconv.Atoi(postIDStr)
+
+	if err != nil {
+		http.Error(w, "Invalid post ID format", http.StatusBadRequest)
+		return
+	}
+
+	db := database.NewDb()
+
+	post, err := models.PostGetByID(db, postID)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(post)
 }

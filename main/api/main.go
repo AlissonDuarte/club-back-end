@@ -44,6 +44,13 @@ func main() {
 
 			app.Post("/images/user", views.UserUploadProfilePicture)
 			app.Get("/images/user", views.UserProfilePicture)
+
+		})
+
+		app.Route("/post", func(app chi.Router) {
+			app.Get("/{id}", views.PostRead)
+			app.Post("/", views.PostCreate)
+
 		})
 
 		app.Post("/clubs", views.ClubCreate)

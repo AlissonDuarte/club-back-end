@@ -19,6 +19,7 @@ type User struct {
 	Bio        string  `gorm:"default:null"`
 	Clubs      []*Club `gorm:"many2many:user_club;"`
 	ClubOnwer  []*Club `gorm:"many2many:owner_club;"`
+	Posts      []Post
 }
 
 func NewUser(name string, username string, gender string, birthDate string, passwd string, email string, phone string) *User {

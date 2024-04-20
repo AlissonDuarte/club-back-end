@@ -24,11 +24,10 @@ type UserUploadPost struct {
 	UserID   uint   `gorm:"not null"`
 	FilePath string `gorm:"not null"`
 	FileSize int64  `gorm:"not null"`
-	PostID   uint   `gorm:"not null"`
 }
 
-func GetUserPostUploadByID(db *gorm.DB, userID int, postID int) (UserUploadPost, error) {
-	var userUpload UserUpload
-	err := db.Where("user_id = ?", userID, "post_id =?").Last(&userUpload).Error
-	return UserUploadPost, err
-}
+// func GetUserPostUploadByID(db *gorm.DB, userID int, postID int) (UserUploadPost, error) {
+// 	var userUpload UserUploadPost
+// 	err := db.Where("user_id = ?", userID, "post_id =?").Last(&userUpload).Error
+// 	return UserUploadPost, err
+// }
