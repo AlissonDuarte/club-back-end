@@ -10,8 +10,8 @@ type Club struct {
 	Name        string
 	Description string
 	OwnerID     uint
-	OwnerRefer  User    `gorm:"foreignKey:OwnerID"`
-	Users       []*User `gorm:"many2many:user_club;"`
+	OwnerRefer  *User   `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
+	Users       []*User `gorm:"many2many:user_club;constraint:OnDelete:CASCADE"`
 }
 
 func NewClub(name string, description string, userIds []int, owner uint, db *gorm.DB) *Club {

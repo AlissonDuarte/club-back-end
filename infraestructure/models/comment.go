@@ -5,9 +5,9 @@ import "gorm.io/gorm"
 type Comment struct {
 	gorm.Model
 	UserID  uint
-	User    User `gorm:"foreignKey:UserID"`
+	User    User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	PostID  uint
-	Post    Post `gorm:"foreignKey:PostID"`
+	Post    Post `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
 	Content string
 	Updated bool
 }

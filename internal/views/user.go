@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -111,7 +112,6 @@ func UserProfilePicture(w http.ResponseWriter, app *http.Request) {
 	userIDStr := chi.URLParam(app, "id")
 	fmt.Println(userIDStr)
 	userID, err := strconv.Atoi(userIDStr)
-	fmt.Println(userID)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -135,10 +135,51 @@ func UserProfilePicture(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer file.Close()
+	w.Header().Set("Content-Type", "image/jpeg")
+	io.Copy(w, file)
+}
 
+func UserPostsPictures(w http.ResponseWriter, app *http.Request) {
+	userIDStr := chi.URLParam(app, "id")
+	postIDStr := chi.URLParam(app, "imageID")
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	db := database.NewDb()
+
+	post_picture, err := models.GetPostUploadByPostID(db, uint(postID), uint(userID))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if post_picture.FilePath == "" {
+		http.Error(w, "No post picture found", http.StatusNotFound)
+		return
+	}
+
+	file, err := os.Open(post_picture.FilePath)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	defer file.Close()
 
-	w.Header().Set("Content-Type", "image/jpeg")
+	w.WriteHeader(http.StatusOK)
 	io.Copy(w, file)
 }
 
@@ -296,7 +337,9 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswdHash), []byte(userLoginData.Passwd))
+
+	fmt.Println(user.PasswdHash, userLoginData.Passwd)
 	if err != nil {
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 		return
@@ -428,4 +471,191 @@ func UserUploadProfilePicture(w http.ResponseWriter, app *http.Request) {
 
 	// Responde com uma mensagem de sucesso
 	fmt.Fprintf(w, "Upload %s with success", fileData.Filename)
+}
+
+func UserFollow(w http.ResponseWriter, app *http.Request) {
+
+	var followData serializer.FollowAndUnfollowSerializer
+
+	conn := database.NewDb()
+
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+	err = json.NewDecoder(app.Body).Decode(&followData)
+
+	if err != nil {
+		http.Error(w, "Invalid data", http.StatusBadRequest)
+		return
+	}
+
+	user, err := models.UserGetById(conn, userID)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	follow, err := models.UserGetById(conn, int(followData.FollowedID))
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	err = models.Follow(conn, user.ID, follow.ID)
+
+	if err != nil {
+		http.Error(w, "Error to follow user", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+}
+
+func UserUnfollow(w http.ResponseWriter, app *http.Request) {
+
+	var followData serializer.FollowAndUnfollowSerializer
+
+	conn := database.NewDb()
+
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+	err = json.NewDecoder(app.Body).Decode(&followData)
+
+	if err != nil {
+		http.Error(w, "Invalid data", http.StatusBadRequest)
+		return
+	}
+
+	user, err := models.UserGetById(conn, userID)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	follow, err := models.UserGetById(conn, int(followData.FollowedID))
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	err = models.Unfollow(conn, user.ID, follow.ID)
+
+	if err != nil {
+		http.Error(w, "Error to unfollow user", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+}
+
+func UserGetFollowers(w http.ResponseWriter, app *http.Request) {
+
+	conn := database.NewDb()
+
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := models.UserGetById(conn, userID)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	followers, err := models.GetFollowers(conn, user.ID)
+
+	if err != nil {
+		http.Error(w, "Error to get followers", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(followers)
+
+}
+func UserGetFollowing(w http.ResponseWriter, app *http.Request) {
+
+	conn := database.NewDb()
+
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := models.UserGetById(conn, userID)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	following, err := models.GetFollowing(conn, user.ID)
+
+	if err != nil {
+		http.Error(w, "Error to get following", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(following)
+
+}
+
+func UserFeed(w http.ResponseWriter, app *http.Request) {
+
+	//pegar id do usuário
+	// pegar id de quem ele segue
+	// filtrar os posts criados por ele e seguidores
+	// retornar para o feed do usuário
+	userIDStr := chi.URLParam(app, "id")
+	userID, err := strconv.Atoi(userIDStr)
+
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	conn := database.NewDb()
+
+	_, err = models.UserGetById(conn, userID)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	posts, err := models.GetFeed(
+		conn,
+		uint(userID),
+	)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to get feed due to: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
+
 }

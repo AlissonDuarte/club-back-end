@@ -14,14 +14,16 @@ type User struct {
 	Gender           string
 	BirthDate        string
 	PasswdHash       string
-	Email            string  `gorm:"unique"`
-	Phone            string  `gorm:"unique"`
-	Bio              string  `gorm:"default:null"`
-	Clubs            []*Club `gorm:"many2many:user_club;"`
-	ClubOnwer        []*Club `gorm:"many2many:owner_club;"`
-	Posts            []Post
-	ProfilePictureID uint
-	ProfilePicture   UserUpload `gorm:"foreignKey:ProfilePictureID"`
+	Email            string      `gorm:"unique"`
+	Phone            string      `gorm:"unique"`
+	Bio              string      `gorm:"default:null"`
+	Clubs            []*Club     `gorm:"many2many:user_club;constraint:OnDelete:CASCADE"`
+	ClubOnwer        []*Club     `gorm:"many2many:owner_club;constraint:OnDelete:CASCADE"`
+	Posts            []Post      `gorm:"constraint:OnDelete:CASCADE"` // Relacionamento adicionado com a opção OnDelete("CASCADE")
+	ProfilePictureID uint        `gorm:"default:null"`
+	ProfilePicture   *UserUpload `gorm:"foreignKey:ProfilePictureID"`
+	Followers        []*User     `gorm:"many2many:user_followers; constraint:OnDelete:Cascade"`
+	Following        []*User     `gorm:"many2many:user_following; constraint:OnDelete:Cascade"`
 }
 
 func NewUser(name string, username string, gender string, birthDate string, passwd string, email string, phone string) *User {
@@ -43,7 +45,7 @@ func GeneratePasswordHash(password string) (string, error) {
 		return "", errors.New("password must be between 8 and 72 characters")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return "", err
 	}
@@ -157,4 +159,127 @@ func UserGetById(db *gorm.DB, id int) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func Follow(db *gorm.DB, userID, followedID uint) error {
+	var user User
+	err := db.First(&user, userID).Error
+	if err != nil {
+		return err
+	}
+
+	var followed User
+	err = db.First(&followed, followedID).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&user).Association("Following").Append(&followed)
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&followed).Association("Followers").Append(&user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Unfollow remove a relação de seguidor entre dois usuários
+
+func Unfollow(db *gorm.DB, userID, followedID uint) error {
+	var user User
+	err := db.First(&user, userID).Error
+	if err != nil {
+		return err
+	}
+
+	var followed User
+	err = db.First(&followed, followedID).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&user).Association("Following").Delete(&followed)
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&followed).Association("Followers").Delete(&user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetFollowers retorna todos os seguidores de um usuário
+
+func GetFollowers(db *gorm.DB, userID uint) ([]User, error) {
+	var user User
+	err := db.Preload("Followers", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).First(&user, userID).Error
+	if err != nil {
+		return nil, err
+	}
+	followers := make([]User, len(user.Followers))
+	for i, follower := range user.Followers {
+		followers[i] = *follower
+	}
+
+	return followers, nil
+}
+
+// GetFollowing retorna todos os usuários que um usuário segue
+
+func GetFollowing(db *gorm.DB, userID uint) ([]User, error) {
+	var user User
+	err := db.Preload("Following", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).First(&user, userID).Error
+	if err != nil {
+		return nil, err
+	}
+	following := make([]User, len(user.Following))
+	for i, followed := range user.Following {
+		following[i] = *followed
+	}
+
+	return following, nil
+}
+
+// GetFeed retorna todos os posts dos usuários que um usuário segue
+func GetFeed(db *gorm.DB, userID uint) ([]Post, error) {
+	var user User
+	err := db.Preload("Following", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id")
+	}).First(&user, userID).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Extrai os IDs dos usuários seguidos
+	var followingIDs []uint
+	for _, following := range user.Following {
+		followingIDs = append(followingIDs, following.ID)
+	}
+
+	var posts []Post
+	err = db.Preload("User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id", "name", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).Preload("Image").Where("user_id IN (?)", followingIDs).Find(&posts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }

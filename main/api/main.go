@@ -42,9 +42,18 @@ func main() {
 			app.Patch("/", views.UserUpdate)
 			app.Delete("/", views.UserSoftDelete)
 
+			app.Post("/follow", views.UserFollow)
+			app.Post("/unfollow", views.UserUnfollow)
+
+			app.Get("/followers", views.UserGetFollowers)
+			app.Get("/following", views.UserGetFollowing)
+
+			app.Get("/feed", views.UserFeed)
+
 			app.Post("/images/user", views.UserUploadProfilePicture)
 			app.Get("/images/user", views.UserProfilePicture)
 
+			app.Get("/images/posts/{imageID}", views.UserPostsPictures)
 		})
 
 		app.Route("/post", func(app chi.Router) {

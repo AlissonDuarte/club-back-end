@@ -20,6 +20,6 @@ func FindUserByEmail(db *gorm.DB, email string) (*models.User, error) {
 	return &user, nil
 }
 
-func VerifyPassword(password, hash string) error {
+func VerifyPassword(hash string, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
