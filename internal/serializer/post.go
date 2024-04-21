@@ -5,3 +5,8 @@ type PostSerializer struct {
 	Content string `json:"content" validate:"required"`
 	UserID  uint   `json:"userID" validate:"required"`
 }
+
+type PostDeleteSerializer struct {
+	PostID uint `json:"postID" validate:"required"`
+	UserID uint `json:"userID" validate:"required"`
+}

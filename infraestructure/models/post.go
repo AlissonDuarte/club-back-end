@@ -43,18 +43,36 @@ func (p *Post) Update(db *gorm.DB) error {
 	return nil
 }
 
-func PostGetByID(db *gorm.DB, id int) (*Post, error) {
+func AddCommentToPost(db *gorm.DB, postID uint, commentID uint) error {
 	var post Post
-	err := db.Preload("User",
-		func(tx *gorm.DB) *gorm.DB {
-			return tx.Select("ID", "Username").Joins("JOIN user_uploads ON users.id = user_uploads.user_id").Select("users.*, user_uploads.file_path")
-		}).Preload("Comments", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "Content", "Created_at", "Updated_at", "Updated")
-	}).Preload("Image", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "FilePath")
-	}).First(&post, id).Error
+	if err := db.First(&post, postID).Error; err != nil {
+		return err
+	}
 
-	if err != nil {
+	var comment Comment
+	if err := db.First(&comment, commentID).Error; err != nil {
+		return err
+	}
+
+	if err := db.Model(&post).Association("Comments").Append(&comment); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func PostGetByID(db *gorm.DB, id uint) (*Post, error) {
+	var post Post
+	if err := db.Preload("User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).Preload("Image").Preload("Comments").Preload("Comments.User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, username, profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).
+		First(&post, id).Error; err != nil {
 		return nil, err
 	}
 

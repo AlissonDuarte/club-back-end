@@ -50,6 +50,7 @@ func main() {
 		app.Route("/post", func(app chi.Router) {
 			app.Get("/{id}", views.PostRead)
 			app.Post("/", views.PostCreate)
+			app.Delete("/", views.PostDelete)
 
 		})
 
@@ -58,6 +59,12 @@ func main() {
 			app.Get("/", views.ClubRead)
 			app.Put("/", views.ClubUpdate)
 			app.Delete("/", views.ClubSoftDelete)
+		})
+
+		app.Route("/comment", func(app chi.Router) {
+			app.Post("/", views.CommentCreate)
+			app.Patch("/", views.CommentUpdate)
+			app.Delete("/", views.CommentDelete)
 		})
 	})
 

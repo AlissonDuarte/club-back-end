@@ -4,12 +4,14 @@ import (
 	"clube/infraestructure/database"
 	"clube/infraestructure/models"
 	"clube/internal/functions"
+	"clube/internal/serializer"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -37,7 +39,6 @@ func PostCreate(w http.ResponseWriter, app *http.Request) {
 	var errorMessage string
 
 	if err != nil {
-		errorMessage = "Error to read file"
 		errorMessage = fmt.Sprintf("Error to read file: %s", err.Error())
 		http.Error(w, errorMessage, http.StatusInternalServerError)
 		return
@@ -45,7 +46,6 @@ func PostCreate(w http.ResponseWriter, app *http.Request) {
 
 	file, fileData, err := app.FormFile("file")
 	if err != nil {
-		errorMessage = "Error to get file"
 		errorMessage = fmt.Sprintf("Error to get file: %s", err.Error())
 		http.Error(w, errorMessage, http.StatusInternalServerError)
 		return
@@ -60,7 +60,6 @@ func PostCreate(w http.ResponseWriter, app *http.Request) {
 
 	filePath, err := os.OpenFile(filepath.Join(uploadDir, functions.GenerateKeys(16)+".png"), os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		errorMessage = "Error to create file"
 		errorMessage = fmt.Sprintf("Error to create file: %s", err.Error())
 		http.Error(w, errorMessage, http.StatusInternalServerError)
 		return
@@ -121,7 +120,7 @@ func PostRead(w http.ResponseWriter, app *http.Request) {
 
 	db := database.NewDb()
 
-	post, err := models.PostGetByID(db, postID)
+	post, err := models.PostGetByID(db, uint(postID))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -130,4 +129,135 @@ func PostRead(w http.ResponseWriter, app *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(post)
+}
+
+func PostDelete(w http.ResponseWriter, app *http.Request) {
+
+	var postDeleteData serializer.PostDeleteSerializer
+
+	if err := json.NewDecoder(app.Body).Decode(&postDeleteData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	postID := postDeleteData.PostID
+	userID := postDeleteData.UserID
+
+	db := database.NewDb()
+
+	post, err := models.PostGetByID(db, postID)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if post.UserID != uint(userID) {
+		http.Error(w, "You can't delete this post", http.StatusForbidden)
+		return
+	}
+
+	if err := db.Delete(&post).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	response.Code = http.StatusNoContent
+	response.Message = "Post deleted!"
+	response.Status = "ok"
+
+	jsonData, err := json.Marshal(response)
+
+	if err != nil {
+		http.Error(w, "Error to retrive data", http.StatusInternalServerError)
+
+	}
+	w.Write(jsonData)
+}
+
+func PostUpdate(w http.ResponseWriter, app *http.Request) {
+	postContent := app.FormValue("content")
+	postTitle := app.FormValue("title")
+	postIDstr := app.FormValue("postID")
+	userIDstr := app.FormValue("userID")
+
+	userIDUint, err := strconv.ParseUint(userIDstr, 10, 64)
+
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	postIDUint, err := strconv.ParseUint(postIDstr, 10, 64)
+
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+	conn := database.NewDb()
+
+	file, fileData, err := app.FormFile("file")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to get file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	uploadDir := "./uploads/post"
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		http.Error(w, fmt.Sprintf("Error to create upload directory: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	filePath, err := os.OpenFile(filepath.Join(uploadDir, functions.GenerateKeys(16)+".png"), os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to create file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	defer filePath.Close()
+
+	db := database.NewDb()
+
+	upload := models.UserUploadPost{
+		UserID:   uint(userIDUint),
+		FilePath: filePath.Name(),
+		FileSize: fileData.Size,
+	}
+
+	if err := db.Create(&upload).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error while saving file to database: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	updatedPost, err := models.PostGetByID(
+		conn,
+		uint(postIDUint),
+	)
+
+	if err != nil {
+		http.Error(w, "Cannot retrive this post data", http.StatusInternalServerError)
+	}
+
+	if updatedPost.UserID != uint(userIDUint) {
+		http.Error(w, "You cannot update this post", http.StatusUnauthorized)
+		return
+	}
+
+	updatedPost.Content = postContent
+	updatedPost.Title = postTitle
+	updatedPost.ImageID = upload.ID
+	updatedPost.Updated = true
+	updatedPost.UpdatedAt = time.Now()
+
+	_, err = updatedPost.Save(conn)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to update info %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
 }

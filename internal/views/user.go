@@ -44,6 +44,7 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -408,6 +409,20 @@ func UserUploadProfilePicture(w http.ResponseWriter, app *http.Request) {
 
 	if err := db.Create(&upload).Error; err != nil {
 		http.Error(w, fmt.Sprintf("Error saving file to database: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	profilePictureID := upload.ID
+
+	// Atualiza o ID da imagem de perfil do usuário
+	user := models.User{}
+	if err := db.First(&user, userID).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error to find user: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	user.ProfilePictureID = profilePictureID
+	if err := db.Save(&user).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error to update user: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 

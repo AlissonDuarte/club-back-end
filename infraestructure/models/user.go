@@ -9,17 +9,19 @@ import (
 
 type User struct {
 	gorm.Model
-	Name       string
-	Username   string `gorm:"unique"`
-	Gender     string
-	BirthDate  string
-	PasswdHash string
-	Email      string  `gorm:"unique"`
-	Phone      string  `gorm:"unique"`
-	Bio        string  `gorm:"default:null"`
-	Clubs      []*Club `gorm:"many2many:user_club;"`
-	ClubOnwer  []*Club `gorm:"many2many:owner_club;"`
-	Posts      []Post
+	Name             string
+	Username         string `gorm:"unique"`
+	Gender           string
+	BirthDate        string
+	PasswdHash       string
+	Email            string  `gorm:"unique"`
+	Phone            string  `gorm:"unique"`
+	Bio              string  `gorm:"default:null"`
+	Clubs            []*Club `gorm:"many2many:user_club;"`
+	ClubOnwer        []*Club `gorm:"many2many:owner_club;"`
+	Posts            []Post
+	ProfilePictureID uint
+	ProfilePicture   UserUpload `gorm:"foreignKey:ProfilePictureID"`
 }
 
 func NewUser(name string, username string, gender string, birthDate string, passwd string, email string, phone string) *User {
@@ -95,7 +97,6 @@ func (u *User) Save(db *gorm.DB) (uint, error) {
 }
 
 func (u *User) Update(db *gorm.DB, newPassword string) error {
-	// Verificar se o usuário não está mudando o username, phone ou email para um que já existe no banco de dados
 	var existingUser User
 	err := db.Where("username = ? AND id != ?", u.Username, u.ID).First(&existingUser).Error
 	if err == nil {
@@ -103,9 +104,6 @@ func (u *User) Update(db *gorm.DB, newPassword string) error {
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-
-	// pegar senha atual caso a senha enviada seja vazia
-	// associar esta senha para ser cadastrada no banco novamente
 
 	err = db.Select("passwd_hash").First(&existingUser, u.ID).Error
 	if err != nil {
