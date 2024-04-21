@@ -50,6 +50,7 @@ func main() {
 		app.Route("/post", func(app chi.Router) {
 			app.Get("/{id}", views.PostRead)
 			app.Post("/", views.PostCreate)
+			app.Patch("/", views.PostUpdate)
 			app.Delete("/", views.PostDelete)
 
 		})
