@@ -25,9 +25,6 @@ func main() {
 
 	app.Handle("/files/*", http.StripPrefix("/files/", fileServer))
 	app.Handle("/images/*", http.StripPrefix("/images/", fileServer))
-	app.Handle("/images/users/*", http.StripPrefix("/images/users/", fileServer))
-	app.Handle("/images/clubs/*", http.StripPrefix("/images/clubs/", fileServer))
-	app.Handle("/images/posts/*", http.StripPrefix("/images/posts/", fileServer))
 
 	app.Post("/users", views.UserCreate)
 	app.Get("/home", views.Home)

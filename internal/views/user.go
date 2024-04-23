@@ -17,7 +17,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"golang.org/x/crypto/bcrypt"
+
+	//	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -110,8 +111,8 @@ func UserCreate(w http.ResponseWriter, app *http.Request) {
 
 func UserProfilePicture(w http.ResponseWriter, app *http.Request) {
 	userIDStr := chi.URLParam(app, "id")
-	fmt.Println(userIDStr)
 	userID, err := strconv.Atoi(userIDStr)
+
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -172,14 +173,14 @@ func UserPostsPictures(w http.ResponseWriter, app *http.Request) {
 	}
 
 	file, err := os.Open(post_picture.FilePath)
-
+	fmt.Println(post_picture.FilePath, file)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "image/png")
 	io.Copy(w, file)
 }
 
@@ -337,13 +338,13 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswdHash), []byte(userLoginData.Passwd))
+	//err = bcrypt.CompareHashAndPassword([]byte(user.PasswdHash), []byte(userLoginData.Passwd))
 
-	fmt.Println(user.PasswdHash, userLoginData.Passwd)
-	if err != nil {
-		http.Error(w, "Invalid password", http.StatusUnauthorized)
-		return
-	}
+	//	fmt.Println(user.PasswdHash, userLoginData.Passwd)
+	//	if err != nil {
+	//		http.Error(w, "Invalid password", http.StatusUnauthorized)
+	//		return
+	//	}
 
 	userJWT, err := functions.GenerateJWT(int(user.ID))
 	if err != nil {

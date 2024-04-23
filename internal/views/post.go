@@ -7,6 +7,7 @@ import (
 	"clube/internal/serializer"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,95 +17,88 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func PostCreate(w http.ResponseWriter, app *http.Request) {
-	postContent := app.FormValue("content")
-	postTitle := app.FormValue("title")
-	userIDStr := app.FormValue("userID")
+func PostCreate(w http.ResponseWriter, r *http.Request) {
+	// Obter os dados do formulário
+	postContent := r.FormValue("content")
+	postTitle := r.FormValue("title")
+	userIDStr := r.FormValue("userID")
+
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
 		return
 	}
 
-	userIDUint, err := strconv.ParseUint(userIDStr, 10, 64)
-
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+	// ParseMultipartForm analisa o formulário multipart do pedido.
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing form: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	conn := database.NewDb()
-
-	err = app.ParseMultipartForm(10 << 20)
-	var errorMessage string
-
+	// Obter o arquivo enviado
+	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
-		errorMessage = fmt.Sprintf("Error to read file: %s", err.Error())
-		http.Error(w, errorMessage, http.StatusInternalServerError)
-		return
-	}
-
-	file, fileData, err := app.FormFile("file")
-	if err != nil {
-		errorMessage = fmt.Sprintf("Error to get file: %s", err.Error())
-		http.Error(w, errorMessage, http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error getting file: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
 
+	// Criar diretório de upload se não existir
 	uploadDir := "./uploads/post"
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		http.Error(w, fmt.Sprintf("Error to create upload directory: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error creating upload directory: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	filePath, err := os.OpenFile(filepath.Join(uploadDir, functions.GenerateKeys(16)+".png"), os.O_WRONLY|os.O_CREATE, 0666)
+	// Criar o arquivo no diretório de upload
+	filePath := filepath.Join(uploadDir, functions.GenerateKeys(16)+".png")
+	outFile, err := os.Create(filePath)
 	if err != nil {
-		errorMessage = fmt.Sprintf("Error to create file: %s", err.Error())
-		http.Error(w, errorMessage, http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error creating file: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
-	defer filePath.Close()
+	defer outFile.Close()
 
+	// Copiar o conteúdo do arquivo recebido para o arquivo que estamos criando
+	_, err = io.Copy(outFile, file)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error copying file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Criar registro no banco de dados para o upload do arquivo
 	db := database.NewDb()
-
 	upload := models.UserUploadPost{
 		UserID:   uint(userID),
-		FilePath: filePath.Name(),
-		FileSize: fileData.Size,
+		FilePath: filePath,
+		FileSize: fileHeader.Size,
 	}
-
 	if err := db.Create(&upload).Error; err != nil {
 		http.Error(w, fmt.Sprintf("Error while saving file to database: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
+	// Criar novo post no banco de dados
 	newPost := models.NewPost(
 		postTitle,
 		postContent,
-		uint(userIDUint),
+		uint(userID),
 		upload.ID,
-		conn,
+		db,
 	)
-
-	if err := conn.Create(&newPost).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := db.Create(&newPost).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error creating post: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
+	// Responder com sucesso
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	response.Code = http.StatusOK
-	response.Message = "Post created!"
-	response.Status = "ok"
-
-	jsonData, err := json.Marshal(response)
-
-	if err != nil {
-		http.Error(w, "Error to retrive data", http.StatusInternalServerError)
-
-	}
-	w.Write(jsonData)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"code":    http.StatusOK,
+		"message": "Post created!",
+		"status":  "ok",
+	})
 }
 
 // leitura de post pelo ID do post
