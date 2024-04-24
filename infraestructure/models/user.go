@@ -256,7 +256,7 @@ func GetFollowing(db *gorm.DB, userID uint) ([]User, error) {
 }
 
 // GetFeed retorna todos os posts dos usuários que um usuário segue
-func GetFeed(db *gorm.DB, userID uint) ([]Post, error) {
+func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
 	var user User
 	err := db.Preload("Following", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id")
@@ -265,7 +265,7 @@ func GetFeed(db *gorm.DB, userID uint) ([]Post, error) {
 		return nil, err
 	}
 
-	// Extrai os IDs dos usuários seguidos
+	// Extrair os IDs dos usuários seguidos
 	var followingIDs []uint
 	for _, following := range user.Following {
 		followingIDs = append(followingIDs, following.ID)
@@ -276,7 +276,7 @@ func GetFeed(db *gorm.DB, userID uint) ([]Post, error) {
 		return tx.Select("id", "name", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
 			return tx.Select("id", "file_path")
 		})
-	}).Preload("Image").Where("user_id IN (?)", followingIDs).Find(&posts).Error
+	}).Preload("Image").Where("user_id IN (?)", followingIDs).Offset(offset).Limit(limit).Find(&posts).Error
 	if err != nil {
 		return nil, err
 	}

@@ -624,11 +624,6 @@ func UserGetFollowing(w http.ResponseWriter, app *http.Request) {
 }
 
 func UserFeed(w http.ResponseWriter, app *http.Request) {
-
-	//pegar id do usuário
-	// pegar id de quem ele segue
-	// filtrar os posts criados por ele e seguidores
-	// retornar para o feed do usuário
 	userIDStr := chi.URLParam(app, "id")
 	userID, err := strconv.Atoi(userIDStr)
 
@@ -646,9 +641,40 @@ func UserFeed(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
+	// Obter parâmetros de consulta para paginação
+	pageStr := app.URL.Query().Get("page")
+	pageSizeStr := app.URL.Query().Get("pageSize")
+
+	var page, pageSize int
+	// Definir valores padrão para página e tamanho da página
+	if pageStr == "" {
+		page = 1
+	} else {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 1 {
+			http.Error(w, "Invalid page number", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if pageSizeStr == "" {
+		pageSize = 2
+	} else {
+		pageSize, err = strconv.Atoi(pageSizeStr)
+		if err != nil || pageSize < 1 {
+			http.Error(w, "Invalid page size", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Calcular o índice inicial para a consulta
+	offset := (page - 1) * pageSize
+
 	posts, err := models.GetFeed(
 		conn,
 		uint(userID),
+		offset,
+		pageSize,
 	)
 
 	if err != nil {
@@ -658,5 +684,4 @@ func UserFeed(w http.ResponseWriter, app *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)
-
 }
