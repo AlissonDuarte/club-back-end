@@ -15,7 +15,9 @@ type Post struct {
 	ImageID  uint
 	Image    UserUploadPost `gorm:"foreignKey:ImageID"`
 	Likes    int
-	Comments []Comment `gorm:"many2many:comment_post;constraint:OnDelete:CASCADE"`
+	ClubID   uint
+	Club     *Club      `gorm:"foreignKey:ClubID;constraint:OnDelete:CASCADE"`
+	Comments *[]Comment `gorm:"many2many:comment_post;constraint:OnDelete:CASCADE"`
 	Updated  bool
 }
 
@@ -25,6 +27,16 @@ func NewPost(title string, content string, userID uint, imageID uint, db *gorm.D
 		Content: content,
 		UserID:  userID,
 		ImageID: imageID,
+	}
+}
+
+func NewPostClub(title string, content string, userID uint, imageID uint, clubID uint, db *gorm.DB) *Post {
+	return &Post{
+		Title:   title,
+		Content: content,
+		UserID:  userID,
+		ImageID: imageID,
+		ClubID:  clubID,
 	}
 }
 
@@ -77,6 +89,24 @@ func PostGetByID(db *gorm.DB, id uint) (*Post, error) {
 		})
 	}).
 		First(&post, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &post, nil
+}
+
+func PostClubGetByID(db *gorm.DB, id uint, clubID uint) (*Post, error) {
+	var post Post
+	if err := db.Preload("User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, name, username, profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).Preload("Image").Preload("Comments").Preload("Comments.User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, name, username, profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "file_path")
+		})
+	}).
+		Where("club_id = ?", clubID).First(&post, id).Error; err != nil {
 		return nil, err
 	}
 

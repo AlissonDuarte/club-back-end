@@ -276,7 +276,7 @@ func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
 		return tx.Select("id", "name", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
 			return tx.Select("id", "file_path")
 		})
-	}).Preload("Image").Where("user_id IN (?)", followingIDs).Offset(offset).Limit(limit).Find(&posts).Error
+	}).Preload("Image").Where("user_id IN (?) AND (club_id IS NULL OR club_id = 0)", followingIDs).Offset(offset).Limit(limit).Find(&posts).Error
 	if err != nil {
 		return nil, err
 	}

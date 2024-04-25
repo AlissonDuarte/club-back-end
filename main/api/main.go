@@ -66,6 +66,11 @@ func main() {
 			app.Get("/", views.ClubRead)
 			app.Put("/", views.ClubUpdate)
 			app.Delete("/", views.ClubSoftDelete)
+
+			app.Route("/post", func(app chi.Router) {
+				app.Post("/", views.PostClubCreate)
+				app.Get("/{postID}", views.PostClubRead)
+			})
 		})
 
 		app.Route("/comment", func(app chi.Router) {
