@@ -10,3 +10,9 @@ type PostDeleteSerializer struct {
 	PostID uint `json:"postID" validate:"required"`
 	UserID uint `json:"userID" validate:"required"`
 }
+
+type PostClubDeleteSerializer struct {
+	PostID uint `json:"postID" validate:"required"`
+	UserID uint `json:"userID" validate:"required"`
+	ClubID uint `json:"clubID" validate:"required"`
+}

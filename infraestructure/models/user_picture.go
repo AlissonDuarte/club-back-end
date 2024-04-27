@@ -26,8 +26,10 @@ type UserUploadPost struct {
 	FileSize int64  `gorm:"not null"`
 }
 
-// func GetUserPostUploadByID(db *gorm.DB, userID int, postID int) (UserUploadPost, error) {
-// 	var userUpload UserUploadPost
-// 	err := db.Where("user_id = ?", userID, "post_id =?").Last(&userUpload).Error
-// 	return UserUploadPost, err
-// }
+func GetUserUploadPostByID(db *gorm.DB, id uint) (*UserUploadPost, error) {
+	var upload UserUploadPost
+	if err := db.First(&upload, id).Error; err != nil {
+		return nil, err
+	}
+	return &upload, nil
+}

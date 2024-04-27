@@ -68,9 +68,10 @@ func main() {
 			app.Delete("/", views.ClubSoftDelete)
 
 			app.Route("/post", func(app chi.Router) {
-				app.Post("/", views.PostClubCreate)
 				app.Get("/{postID}", views.PostClubRead)
-				app.Delete("/{postID}", views.PostClubDelete)
+				app.Post("/", views.PostClubCreate)
+				app.Delete("/", views.PostClubDelete)
+				app.Patch("/", views.PostClubUpdate)
 			})
 		})
 
