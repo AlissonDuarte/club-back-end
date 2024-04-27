@@ -70,6 +70,7 @@ func main() {
 			app.Route("/post", func(app chi.Router) {
 				app.Post("/", views.PostClubCreate)
 				app.Get("/{postID}", views.PostClubRead)
+				app.Delete("/{postID}", views.PostClubDelete)
 			})
 		})
 

@@ -130,3 +130,16 @@ func GetPostUploadByPostID(db *gorm.DB, postID uint, userID uint) (*UserUploadPo
 
 	return &upload, nil
 }
+
+func IsUserIDInClub(db *gorm.DB, userID, clubID uint) (bool, error) {
+	var count int64
+	result := db.Model(&User{}).
+		Joins("JOIN user_club ON users.id = user_club.user_id").
+		Where("user_club.club_id = ?", clubID).
+		Where("users.id = ?", userID).
+		Count(&count)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return count > 0, nil
+}

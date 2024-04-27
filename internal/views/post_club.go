@@ -34,6 +34,20 @@ func PostClubCreate(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, "Invalid club id format", http.StatusBadRequest)
 		return
 	}
+	db := database.NewDb()
+
+	allowed, err := models.IsUserIDInClub(db, uint(userID), uint(clubID))
+
+	if err != nil {
+		fmt.Println(err.Error())
+		http.Error(w, "Error to check if you're member of this club", http.StatusInternalServerError)
+		return
+	}
+
+	if !allowed {
+		http.Error(w, "You're not member of this club", http.StatusUnauthorized)
+		return
+	}
 
 	if err := app.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, fmt.Sprintf("Error parsing form: %s", err.Error()), http.StatusBadRequest)
@@ -68,8 +82,6 @@ func PostClubCreate(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
-	db := database.NewDb()
-
 	upload := models.UserUploadPost{
 		UserID:   uint(userID),
 		FilePath: filePath,
@@ -81,7 +93,6 @@ func PostClubCreate(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
-	fmt.Println(postTitle, postContent, userID, upload.ID, clubID)
 	newPost := models.NewPostClub(
 		postTitle,
 		postContent,
@@ -109,8 +120,12 @@ func PostClubCreate(w http.ResponseWriter, app *http.Request) {
 func PostClubRead(w http.ResponseWriter, app *http.Request) {
 	postIDStr := chi.URLParam(app, "postID")
 	clubIDStr := chi.URLParam(app, "id")
+	userID, err := functions.UserIdFromToken(app)
 
-	fmt.Println(postIDStr, clubIDStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("User not found: %s", err.Error()), http.StatusForbidden)
+		return
+	}
 
 	postID, err := strconv.Atoi(postIDStr)
 
@@ -127,6 +142,17 @@ func PostClubRead(w http.ResponseWriter, app *http.Request) {
 	}
 
 	db := database.NewDb()
+	allowed, err := models.IsUserIDInClub(db, uint(userID), uint(clubID))
+
+	if err != nil {
+		http.Error(w, "Error to check if you're member of this club", http.StatusInternalServerError)
+		return
+	}
+
+	if !allowed {
+		http.Error(w, "You're not member of this club", http.StatusUnauthorized)
+		return
+	}
 
 	post, err := models.PostClubGetByID(db, uint(postID), uint(clubID))
 
@@ -138,4 +164,78 @@ func PostClubRead(w http.ResponseWriter, app *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(post)
 
+}
+
+func PostClubDelete(w http.ResponseWriter, app *http.Request) {
+	type UserIDRequest struct {
+		UserID int `json:"userID"`
+	}
+
+	var userIDRequest UserIDRequest
+	postIDStr := chi.URLParam(app, "postID")
+	clubIDStr := chi.URLParam(app, "id")
+
+	postID, err := strconv.Atoi(postIDStr)
+
+	if err != nil {
+		http.Error(w, "Invalid post id format", http.StatusBadRequest)
+		return
+	}
+
+	clubID, err := strconv.Atoi(clubIDStr)
+
+	if err != nil {
+		http.Error(w, "Invalid club id format", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(app.Body).Decode(&userIDRequest); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	userID := userIDRequest.UserID
+	db := database.NewDb()
+
+	// verificar se o user é criador do post ou dono do club
+	post, err := models.PostClubGetByID(db, uint(postID), uint(clubID))
+
+	if err != nil {
+		http.Error(w, "Error to get club, try later", http.StatusInternalServerError)
+		return
+	}
+
+	if userID != int(post.UserID) || clubID != int(post.ClubID) {
+		http.Error(w, "You're not the owner of this post nor the owner of the club", http.StatusUnauthorized)
+		return
+	}
+
+	// verificar se o usuario ainda faz parte do clube
+	allowed, err := models.IsUserIDInClub(db, uint(userID), uint(clubID))
+
+	if err != nil {
+		http.Error(w, "Error to verify if you're a member of this club", http.StatusInternalServerError)
+		return
+	}
+
+	if !allowed {
+		http.Error(w, "You're not allowed to delete this post", http.StatusInternalServerError)
+	}
+	if err := db.Delete(&post).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error to delete this post: %s", err.Error()), http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	response.Code = http.StatusNoContent
+	response.Message = "Post deleted!"
+	response.Status = "ok"
+
+	jsonData, err := json.Marshal(response)
+
+	if err != nil {
+		http.Error(w, "Error to retrive data", http.StatusInternalServerError)
+
+	}
+	w.Write(jsonData)
 }

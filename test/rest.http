@@ -1,8 +1,8 @@
 POST http://127.0.0.1:3000/user/login
 
 {
-"email":"sasha@gmail.com",
-"passwd":"12345678"
+"email":"alisson@gmail.com",
+"passwd":"teste123"
 }
 
 PATCH http://127.0.0.1:3000/user/74
