@@ -73,6 +73,8 @@ func main() {
 				app.Delete("/", views.PostClubDelete)
 				app.Patch("/", views.PostClubUpdate)
 			})
+
+			app.Get("/feed", views.ClubFeed)
 		})
 
 		app.Route("/comment", func(app chi.Router) {

@@ -3,8 +3,10 @@ package views
 import (
 	"clube/infraestructure/database"
 	"clube/infraestructure/models"
+	"clube/internal/functions"
 	"clube/internal/serializer"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -172,4 +174,78 @@ func ClubSoftDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(jsonData)
 	w.WriteHeader(http.StatusOK)
+}
+
+func ClubFeed(w http.ResponseWriter, app *http.Request) {
+	clubIDStr := chi.URLParam(app, "id")
+	clubID, err := strconv.Atoi(clubIDStr)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Cannot format club id: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	userID, err := functions.UserIdFromToken(app)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Cannot decode token: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	conn := database.NewDb()
+
+	allowed, err := models.IsUserIDInClub(conn, uint(userID), uint(clubID))
+
+	if err != nil {
+		http.Error(w, "Cannot check if you're member of this group, try later!", http.StatusInternalServerError)
+		return
+	}
+
+	if !allowed {
+		http.Error(w, "You're not a member of this group.", http.StatusUnauthorized)
+		return
+	}
+
+	pageStr := app.URL.Query().Get("page")
+	pageSizeStr := app.URL.Query().Get("pageSize")
+
+	var page, pageSize int
+
+	if pageStr == "" {
+		page = 1
+	} else {
+		page, err = strconv.Atoi(pageStr)
+
+		if err != nil || page < 1 {
+			http.Error(w, "Invalid page number", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if pageSizeStr == "" {
+		pageSize = 2
+	} else {
+		pageSize, err = strconv.Atoi(pageSizeStr)
+		if err != nil || pageSize < 1 {
+			http.Error(w, "Invalid page size", http.StatusBadRequest)
+			return
+		}
+	}
+
+	offset := (page - 1) * pageSize
+
+	posts, err := models.GetClubFeed(
+		conn,
+		uint(clubID),
+		offset,
+		pageSize,
+	)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to get feed due to: %s", err.Error()), http.StatusInternalServerError)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
 }
