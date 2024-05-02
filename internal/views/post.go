@@ -68,6 +68,7 @@ func PostCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Criar registro no banco de dados para o upload do arquivo
 	db := database.NewDb()
+
 	upload := models.UserUploadPost{
 		UserID:   uint(userID),
 		FilePath: filePath,

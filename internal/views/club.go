@@ -7,32 +7,79 @@ import (
 	"clube/internal/serializer"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func ClubCreate(w http.ResponseWriter, r *http.Request) {
-	conn := database.NewDb()
+	clubDescription := r.FormValue("description")
+	clubName := r.FormValue("name")
+	ownerIDstr := r.FormValue("owner")
 
-	var clubData serializer.GroupSerializer
-	err := json.NewDecoder(r.Body).Decode(&clubData)
+	ownerID, err := strconv.Atoi(ownerIDstr)
+
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Invalid owner ID format", http.StatusBadRequest)
 		return
 	}
 
-	if err := validate.Struct(clubData); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing form: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error getting file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	uploadDir := "./uploads/club"
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		http.Error(w, fmt.Sprintf("Error creating upload directory: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	filePath := filepath.Join(uploadDir, functions.GenerateKeys(16)+".png")
+	outFile, err := os.Create(filePath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	defer outFile.Close()
+
+	// Copiar o conteúdo do arquivo recebido para o arquivo que estamos criando
+	_, err = io.Copy(outFile, file)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error copying file: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	conn := database.NewDb()
+
+	upload := models.UserUploadClub{
+		UserID:   uint(ownerID),
+		FilePath: filePath,
+		FileSize: fileHeader.Size,
+	}
+
+	if err := conn.Create(&upload).Error; err != nil {
+		http.Error(w, fmt.Sprintf("Error to save file into database: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	newClub := models.NewClub(
-		clubData.Name,
-		clubData.Description,
-		clubData.Users,
-		clubData.Owner,
+		clubName,
+		clubDescription,
+		[]int{ownerID},
+		uint(ownerID),
+		upload.ID,
 		conn,
 	)
 
@@ -40,10 +87,6 @@ func ClubCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	var user models.User
-	conn.First(&user, clubData.Owner)
-	user.Clubs = append(user.Clubs, newClub)
 
 	response.Message = "Club creted successfully!!"
 	response.Status = "success"
@@ -81,6 +124,34 @@ func ClubRead(w http.ResponseWriter, app *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(club)
+}
+
+func ClubReadAll(w http.ResponseWriter, app *http.Request) {
+	userIDStr := chi.URLParam(app, "userId")
+	userID, err := strconv.Atoi(userIDStr)
+
+	var clubs []*models.Club
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Cannot read id value due to: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	conn := database.NewDb()
+
+	err = conn.Where("owner_id = ?", userID).
+		Preload("OwnerRefer").
+		Preload("Users").
+		Find(&clubs).Error
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to get data: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(clubs)
+
 }
 
 func ClubUpdate(w http.ResponseWriter, r *http.Request) {
@@ -248,4 +319,40 @@ func ClubFeed(w http.ResponseWriter, app *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)
+}
+
+func ClubPictures(w http.ResponseWriter, app *http.Request) {
+	clubIDstr := chi.URLParam(app, "id")
+
+	clubID, err := strconv.Atoi(clubIDstr)
+
+	if err != nil {
+		http.Error(w, "Invalid club id format", http.StatusInternalServerError)
+		return
+	}
+
+	conn := database.NewDb()
+
+	club_picture, err := models.GetClubUploadByID(conn, uint(clubID))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if club_picture.FilePath == "" {
+		http.Error(w, "No post picture found", http.StatusNotFound)
+		return
+	}
+
+	file, err := os.Open(club_picture.FilePath)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	w.Header().Set("Content-Type", "image/png")
+	io.Copy(w, file)
 }

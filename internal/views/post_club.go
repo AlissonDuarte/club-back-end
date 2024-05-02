@@ -143,6 +143,7 @@ func PostClubRead(w http.ResponseWriter, app *http.Request) {
 	}
 
 	db := database.NewDb()
+
 	allowed, err := models.IsUserIDInClub(db, uint(userID), uint(clubID))
 
 	if err != nil {

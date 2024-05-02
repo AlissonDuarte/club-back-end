@@ -33,6 +33,7 @@ var response struct {
 
 func UserCreate(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
+
 	var userData serializer.UserSerializer
 
 	err := json.NewDecoder(app.Body).Decode(&userData)
@@ -147,7 +148,6 @@ func UserPostsPictures(w http.ResponseWriter, app *http.Request) {
 
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
@@ -173,7 +173,7 @@ func UserPostsPictures(w http.ResponseWriter, app *http.Request) {
 	}
 
 	file, err := os.Open(post_picture.FilePath)
-	fmt.Println(post_picture.FilePath, file)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -332,6 +332,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn := database.NewDb()
+
 	user, err := functions.FindUserByEmail(conn, userLoginData.Email)
 	if err != nil {
 		http.Error(w, "User with email not found: "+userLoginData.Email, http.StatusBadRequest)

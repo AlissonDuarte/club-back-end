@@ -9,12 +9,14 @@ type Club struct {
 	gorm.Model
 	Name        string
 	Description string
+	ImageID     uint
+	Image       *UserUploadClub `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
 	OwnerID     uint
 	OwnerRefer  *User   `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
 	Users       []*User `gorm:"many2many:user_club;constraint:OnDelete:CASCADE"`
 }
 
-func NewClub(name string, description string, userIds []int, owner uint, db *gorm.DB) *Club {
+func NewClub(name string, description string, userIds []int, owner uint, imageID uint, db *gorm.DB) *Club {
 	users := []*User{}
 
 	for _, userID := range userIds {
@@ -31,6 +33,7 @@ func NewClub(name string, description string, userIds []int, owner uint, db *gor
 		Description: description,
 		Users:       users,
 		OwnerID:     owner,
+		ImageID:     imageID,
 	}
 }
 
@@ -72,4 +75,17 @@ func GetClubFeed(db *gorm.DB, clubID uint, offset, limit int) ([]Post, error) {
 	}
 
 	return posts, nil
+}
+func GetClubUploadByID(db *gorm.DB, clubID uint) (*UserUploadClub, error) {
+	var club Club
+	if err := db.First(&club, clubID).Error; err != nil {
+		return nil, err
+	}
+
+	var upload UserUploadClub
+	if err := db.First(&upload, club.ImageID).Error; err != nil {
+		return nil, err
+	}
+	return &upload, nil
+
 }

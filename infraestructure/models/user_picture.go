@@ -33,3 +33,10 @@ func GetUserUploadPostByID(db *gorm.DB, id uint) (*UserUploadPost, error) {
 	}
 	return &upload, nil
 }
+
+type UserUploadClub struct {
+	gorm.Model
+	UserID   uint   `gorm:"not null"`
+	FilePath string `gorm:"not null"`
+	FileSize int64  `gorm:"not null"`
+}

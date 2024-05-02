@@ -11,6 +11,7 @@ import (
 
 func CommentCreate(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
+
 	var errorMessage string
 	var commentData serializer.CommentSerializer
 
@@ -51,6 +52,7 @@ func CommentCreate(w http.ResponseWriter, app *http.Request) {
 
 func CommentUpdate(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
+
 	var errorMessage string
 	var commentData serializer.CommentUpdateSerializer
 
@@ -101,6 +103,7 @@ func CommentUpdate(w http.ResponseWriter, app *http.Request) {
 
 func CommentDelete(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
+
 	var errorMessage string
 	var commentData serializer.CommentUpdateSerializer
 
