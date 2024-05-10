@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 
 	//	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -270,6 +271,56 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 	}
 }
 
+func UserChangePassword(w http.ResponseWriter, app *http.Request) {
+	var body serializer.UserChangePasswordSerliazer
+
+	err := json.NewDecoder(app.Body).Decode(&body)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Cannot decode data due to: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if body.NewPasswd != body.NewPasswdCheck {
+		http.Error(w, "New password not match", http.StatusBadRequest)
+		return
+	}
+
+	db := database.NewDb()
+
+	user, err := models.UserGetById(db, body.Id)
+
+	if err != nil {
+		http.Error(w, "Cannot find user", http.StatusInternalServerError)
+		return
+	}
+
+	err = user.ChangePassword(db, body.NewPasswd)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Cannot change password due to: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	response.Message = "User updated successfully!!"
+	response.Status = "success"
+	response.Code = http.StatusOK
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(jsonData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+}
+
 func UserSoftDelete(w http.ResponseWriter, app *http.Request) {
 	userIDStr := chi.URLParam(app, "id")
 	userID, err := strconv.Atoi(userIDStr)
@@ -339,13 +390,11 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//err = bcrypt.CompareHashAndPassword([]byte(user.PasswdHash), []byte(userLoginData.Passwd))
-
-	//	fmt.Println(user.PasswdHash, userLoginData.Passwd)
-	//	if err != nil {
-	//		http.Error(w, "Invalid password", http.StatusUnauthorized)
-	//		return
-	//	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswdHash), []byte(userLoginData.Passwd))
+	if err != nil {
+		http.Error(w, "Invalid password", http.StatusUnauthorized)
+		return
+	}
 
 	userJWT, err := functions.GenerateJWT(int(user.ID))
 	if err != nil {

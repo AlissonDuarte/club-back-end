@@ -98,6 +98,21 @@ func (u *User) Save(db *gorm.DB) (uint, error) {
 	return u.ID, nil
 }
 
+func (u *User) ChangePassword(db *gorm.DB, newPassword string) error {
+	var user User
+
+	if err := db.Where("id = ?", u.ID).First(&user).Error; err != nil {
+		return err
+	}
+
+	// Salvar as alterações no banco de dados
+	if err := db.Save(&user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (u *User) Update(db *gorm.DB, newPassword string) error {
 	var existingUser User
 	err := db.Where("username = ? AND id != ?", u.Username, u.ID).First(&existingUser).Error
@@ -151,6 +166,7 @@ func UserGetById(db *gorm.DB, id int) (*User, error) {
 		"created_at",
 		"birth_date",
 		"bio",
+		"profile_picture_id",
 	).Preload("Clubs", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id", "name", "created_at")
 	}).First(&user, id).Error

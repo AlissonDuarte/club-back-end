@@ -39,6 +39,8 @@ func main() {
 			app.Patch("/", views.UserUpdate)
 			app.Delete("/", views.UserSoftDelete)
 
+			app.Post("/change_password", views.UserChangePassword)
+
 			app.Post("/follow", views.UserFollow)
 			app.Post("/unfollow", views.UserUnfollow)
 

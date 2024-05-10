@@ -22,3 +22,10 @@ type UserUpdateSerializer struct {
 	Phone     string `json:"phone"`
 	Bio       string `json:"bio"`
 }
+
+type UserChangePasswordSerliazer struct {
+	Id             int    `json:"user_id"`
+	OldPasswd      string `json:"old_passwd"`
+	NewPasswd      string `json:"new_passwd"`
+	NewPasswdCheck string `json:"new_passwd_check"`
+}
