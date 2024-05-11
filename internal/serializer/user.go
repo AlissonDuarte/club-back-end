@@ -24,8 +24,8 @@ type UserUpdateSerializer struct {
 }
 
 type UserChangePasswordSerliazer struct {
-	Id             int    `json:"user_id" validate:"required"`
-	OldPasswd      string `json:"old_passwd" validate:"required"`
-	NewPasswd      string `json:"new_passwd" validate:"required"`
-	NewPasswdCheck string `json:"new_passwd_check" validate:"required"`
+	Id             string `json:"userID" validate:"required"`
+	OldPasswd      string `json:"currentPassword" validate:"required"`
+	NewPasswd      string `json:"newPassword" validate:"required"`
+	NewPasswdCheck string `json:"confirmPassword" validate:"required"`
 }

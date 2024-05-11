@@ -23,6 +23,7 @@ import (
 )
 
 func Teste(w http.ResponseWriter, app *http.Request) {
+	// endpoint criado para testes e debug de funcoes
 	type teste struct {
 		Password string `json:"password"`
 	}
@@ -308,7 +309,11 @@ func UserChangePassword(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, fmt.Sprintf("Cannot decode data due to: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
-
+	userID, err := strconv.Atoi(body.Id)
+	if err != nil {
+		http.Error(w, "Error to read user id", http.StatusBadRequest)
+		return
+	}
 	if err := validate.Struct(body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -321,13 +326,13 @@ func UserChangePassword(w http.ResponseWriter, app *http.Request) {
 
 	db := database.NewDb()
 
-	user, err := models.UserGetById(db, body.Id)
+	user, err := models.UserGetById(db, userID)
 
 	if err != nil {
 		http.Error(w, "Cannot find user", http.StatusInternalServerError)
 		return
 	}
-	old_passwd_hash, err := models.UserGetPassword(db, body.Id)
+	old_passwd_hash, err := models.UserGetPassword(db, userID)
 	fmt.Println("old password: ", old_passwd_hash)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error to confirm old password: %s", err.Error()), http.StatusInternalServerError)
