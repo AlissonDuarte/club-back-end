@@ -39,8 +39,6 @@ func main() {
 			app.Patch("/", views.UserUpdate)
 			app.Delete("/", views.UserSoftDelete)
 
-			app.Post("/change_password", views.UserChangePassword)
-
 			app.Post("/follow", views.UserFollow)
 			app.Post("/unfollow", views.UserUnfollow)
 
@@ -53,6 +51,9 @@ func main() {
 			app.Get("/images/user", views.UserProfilePicture)
 
 			app.Get("/images/posts/{imageID}", views.UserPostsPictures)
+
+			app.Post("/change_password", views.UserChangePassword)
+
 		})
 
 		app.Route("/post", func(app chi.Router) {

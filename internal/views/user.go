@@ -17,11 +17,39 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"golang.org/x/crypto/bcrypt"
 
 	//	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+func Teste(w http.ResponseWriter, app *http.Request) {
+	type teste struct {
+		Password string `json:"password"`
+	}
+	var body teste
+
+	err := json.NewDecoder(app.Body).Decode(&body)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	hash, err := models.GeneratePasswordHash(body.Password)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	fmt.Println("hash gerado", hash)
+
+	err = functions.VerifyPassword(body.Password, hash)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+}
 
 var validate = validator.New()
 
@@ -281,6 +309,11 @@ func UserChangePassword(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
+	if err := validate.Struct(body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if body.NewPasswd != body.NewPasswdCheck {
 		http.Error(w, "New password not match", http.StatusBadRequest)
 		return
@@ -292,6 +325,18 @@ func UserChangePassword(w http.ResponseWriter, app *http.Request) {
 
 	if err != nil {
 		http.Error(w, "Cannot find user", http.StatusInternalServerError)
+		return
+	}
+	old_passwd_hash, err := models.UserGetPassword(db, body.Id)
+	fmt.Println("old password: ", old_passwd_hash)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to confirm old password: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	err = functions.VerifyPassword(body.OldPasswd, old_passwd_hash)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -390,7 +435,8 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswdHash), []byte(userLoginData.Passwd))
+	fmt.Println(userLoginData.Passwd, user.PasswdHash)
+	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
 	if err != nil {
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 		return

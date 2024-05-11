@@ -2,11 +2,13 @@ package functions
 
 import (
 	"clube/infraestructure/models"
+	"crypto/sha256"
+	"encoding/base64"
+	"errors"
 	"fmt"
-	"time"
+	"strings"
 
-	"github.com/pquerna/otp/totp"
-	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/pbkdf2"
 	"gorm.io/gorm"
 )
 
@@ -22,34 +24,40 @@ func FindUserByEmail(db *gorm.DB, email string) (*models.User, error) {
 	return &user, nil
 }
 
-func VerifyPassword(hash string, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-}
+func VerifyPassword(password, hashedPassword string) error {
+	parts := strings.Split(hashedPassword, "$")
+	if len(parts) != 2 {
+		return errors.New("invalid hashed password format")
+	}
+	saltString := parts[0]
+	hash := parts[1]
 
-func LoginTotp(user *models.User) error {
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "Clube",
-		AccountName: user.Username,
-	})
-
+	salt, err := base64.StdEncoding.DecodeString(saltString)
 	if err != nil {
-		return fmt.Errorf("error to generate totp")
+		return err
+	}
+	hashedPasswordInput := pbkdf2.Key([]byte(password), salt, 10000, sha256.Size, sha256.New)
+	hashInput := base64.StdEncoding.EncodeToString(hashedPasswordInput)
+	fmt.Println("Hash da senha digitada", hashInput)
+	fmt.Println("Hash da senha do banco", hash)
+
+	if len(hash) != len(hashInput) {
+		return errors.New("incorrect password, lenght diff")
 	}
 
-	fmt.Println("SECRET KEY", key.Secret())
-	now := time.Now()
-	totpCode, err := totp.GenerateCode(key.Secret(), now)
+	var diff byte
 
-	if err != nil {
-		return fmt.Errorf("cannot access key")
+	for i := 0; i < len(hash); i++ {
+		diff |= hash[i] ^ hashInput[i]
 	}
 
-	valid := totp.Validate(totpCode, key.Secret())
-
-	if valid {
-		return nil
-	} else {
-		return fmt.Errorf("invalid code")
+	if diff != 0 {
+		return errors.New("incorrect password, diff exists")
 	}
 
+	if hash != hashInput {
+		return errors.New("incorrect password")
+	}
+
+	return nil
 }

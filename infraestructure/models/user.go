@@ -1,9 +1,13 @@
 package models
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
+	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/pbkdf2"
 	"gorm.io/gorm"
 )
 
@@ -40,16 +44,26 @@ func NewUser(name string, username string, gender string, birthDate string, pass
 }
 
 func GeneratePasswordHash(password string) (string, error) {
+	const iterations = 10000
+	const saltLength = 16
 
 	if len(password) < 8 || len(password) > 72 {
 		return "", errors.New("password must be between 8 and 72 characters")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
-	if err != nil {
+	salt := make([]byte, saltLength)
+	if _, err := rand.Read(salt); err != nil {
 		return "", err
 	}
-	return string(hashedPassword), nil
+
+	hashedPassword := pbkdf2.Key([]byte(password), salt, iterations, sha256.Size, sha256.New)
+
+	hash := base64.StdEncoding.EncodeToString(hashedPassword)
+	saltString := base64.StdEncoding.EncodeToString(salt)
+
+	hashWithSalt := saltString + "$" + hash
+
+	return hashWithSalt, nil
 }
 
 func (u *User) BeforeSave(tx *gorm.DB) (err error) {
@@ -104,7 +118,7 @@ func (u *User) ChangePassword(db *gorm.DB, newPassword string) error {
 	if err := db.Where("id = ?", u.ID).First(&user).Error; err != nil {
 		return err
 	}
-
+	user.PasswdHash = newPassword
 	// Salvar as alterações no banco de dados
 	if err := db.Save(&user).Error; err != nil {
 		return err
@@ -153,6 +167,19 @@ func (u *User) Update(db *gorm.DB, newPassword string) error {
 	}
 
 	return nil
+}
+
+func UserGetPassword(db *gorm.DB, id int) (string, error) {
+	var passwd_hash string
+	var user User
+
+	result := db.Model(&User{}).Select("passwd_hash").Where("id = ?", id).First(&user)
+
+	if result.Error != nil {
+		return "", fmt.Errorf("error to find user")
+	}
+	passwd_hash = user.PasswdHash
+	return passwd_hash, nil
 }
 
 func UserGetById(db *gorm.DB, id int) (*User, error) {
