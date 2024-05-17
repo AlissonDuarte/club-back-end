@@ -40,7 +40,6 @@ func PostClubCreate(w http.ResponseWriter, app *http.Request) {
 	allowed, err := models.IsUserIDInClub(db, uint(userID), uint(clubID))
 
 	if err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, "Error to check if you're member of this club", http.StatusInternalServerError)
 		return
 	}

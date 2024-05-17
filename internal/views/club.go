@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 )
 
 func ClubCreate(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +23,7 @@ func ClubCreate(w http.ResponseWriter, r *http.Request) {
 	ownerIDstr := r.FormValue("owner")
 
 	ownerID, err := strconv.Atoi(ownerIDstr)
-
+	fmt.Println(err)
 	if err != nil {
 		http.Error(w, "Invalid owner ID format", http.StatusBadRequest)
 		return
@@ -140,8 +141,12 @@ func ClubReadAll(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
 
 	err = conn.Where("owner_id = ?", userID).
-		Preload("OwnerRefer").
-		Preload("Users").
+		Preload("OwnerRefer", func(db *gorm.DB) *gorm.DB {
+			return db.Omit("passwd_hash")
+		}).
+		Preload("Users", func(db *gorm.DB) *gorm.DB {
+			return db.Omit("passwd_hash")
+		}).
 		Find(&clubs).Error
 
 	if err != nil {

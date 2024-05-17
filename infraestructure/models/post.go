@@ -15,7 +15,7 @@ type Post struct {
 	ImageID  uint
 	Image    UserUploadPost `gorm:"foreignKey:ImageID"`
 	Likes    int
-	ClubID   uint
+	ClubID   uint       `gorm:"default:null"`
 	Club     *Club      `gorm:"foreignKey:ClubID;constraint:OnDelete:CASCADE"`
 	Comments *[]Comment `gorm:"many2many:comment_post;constraint:OnDelete:CASCADE"`
 	Updated  bool
@@ -131,7 +131,7 @@ func GetPostUploadByPostID(db *gorm.DB, postID uint, userID uint) (*UserUploadPo
 	return &upload, nil
 }
 
-func IsUserIDInClub(db *gorm.DB, userID, clubID uint) (bool, error) {
+func IsUserIDInClub(db *gorm.DB, userID uint, clubID uint) (bool, error) {
 	var count int64
 	result := db.Model(&User{}).
 		Joins("JOIN user_club ON users.id = user_club.user_id").

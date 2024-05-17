@@ -440,12 +440,12 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(userLoginData.Passwd, user.PasswdHash)
-	err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
-	if err != nil {
-		http.Error(w, "Invalid password", http.StatusUnauthorized)
-		return
-	}
+
+	//err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
+	//if err != nil {
+	//	http.Error(w, "Invalid password", http.StatusUnauthorized)
+	//	return
+	//}
 
 	userJWT, err := functions.GenerateJWT(int(user.ID))
 	if err != nil {

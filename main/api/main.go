@@ -69,9 +69,6 @@ func main() {
 			app.Get("/{userId}/all", views.ClubReadAll)
 		})
 
-		app.Post("/clubs", views.ClubCreate)
-		app.Get("/clubs/{userId}/all", views.ClubReadAll)
-
 		app.Route("/club/{id}", func(app chi.Router) {
 
 			app.Get("/", views.ClubRead)
