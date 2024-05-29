@@ -310,6 +310,8 @@ func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
 
 	// Extrair os IDs dos usuários seguidos
 	var followingIDs []uint
+	followingIDs = append(followingIDs, userID)
+
 	for _, following := range user.Following {
 		followingIDs = append(followingIDs, following.ID)
 	}
