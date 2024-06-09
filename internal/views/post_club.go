@@ -22,6 +22,11 @@ func PostClubCreate(w http.ResponseWriter, app *http.Request) {
 	userIDStr := app.FormValue("userID")
 	clubIDStr := chi.URLParam(app, "id")
 
+	if !functions.PostContentMaxLength(postContent, 516) || !functions.PostContentMaxLength(postTitle, 128) {
+		http.Error(w, "Post content is to big", http.StatusBadRequest)
+		return
+	}
+
 	userID, err := strconv.Atoi(userIDStr)
 
 	if err != nil {
@@ -241,6 +246,11 @@ func PostClubUpdate(w http.ResponseWriter, app *http.Request) {
 	postIDstr := app.FormValue("postID")
 	userIDstr := app.FormValue("userID")
 	clubIDStr := chi.URLParam(app, "id")
+
+	if !functions.PostContentMaxLength(postContent, 516) || !functions.PostContentMaxLength(postTitle, 128) {
+		http.Error(w, "Post content is to big", http.StatusBadRequest)
+		return
+	}
 
 	userIDUint, err := strconv.ParseUint(userIDstr, 10, 64)
 

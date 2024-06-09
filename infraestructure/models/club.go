@@ -68,7 +68,7 @@ func GetClubFeed(db *gorm.DB, clubID uint, offset, limit int) ([]Post, error) {
 		return tx.Select("id", "name", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
 			return tx.Select("id", "file_path")
 		})
-	}).Preload("Image").Where("club_id = ?", clubID).Offset(offset).Limit(limit).Find(&posts).Error
+	}).Preload("Image").Where("club_id = ?", clubID).Order("id desc").Offset(offset).Limit(limit).Find(&posts).Error
 
 	if err != nil {
 		return nil, err

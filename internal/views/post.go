@@ -23,6 +23,11 @@ func PostCreate(w http.ResponseWriter, r *http.Request) {
 	postTitle := r.FormValue("title")
 	userIDStr := r.FormValue("userID")
 
+	if !functions.PostContentMaxLength(postContent, 516) || !functions.PostContentMaxLength(postTitle, 128) {
+		http.Error(w, "Post content is too big", http.StatusBadRequest)
+		return
+	}
+
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
@@ -177,6 +182,11 @@ func PostUpdate(w http.ResponseWriter, app *http.Request) {
 	postTitle := app.FormValue("title")
 	postIDstr := app.FormValue("postID")
 	userIDstr := app.FormValue("userID")
+
+	if !functions.PostContentMaxLength(postContent, 516) || !functions.PostContentMaxLength(postTitle, 128) {
+		http.Error(w, "Post content is to big", http.StatusBadRequest)
+		return
+	}
 
 	userIDUint, err := strconv.ParseUint(userIDstr, 10, 64)
 

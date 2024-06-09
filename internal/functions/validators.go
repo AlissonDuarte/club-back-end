@@ -23,3 +23,8 @@ func ValidGender(gender string) bool {
 	}
 	return false
 }
+
+func PostContentMaxLength(data string, max int) bool {
+	length := len(data)
+	return length <= max
+}
