@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type Comment struct {
 	gorm.Model
@@ -20,15 +22,27 @@ func NeWComment(userID uint, postID uint, content string) *Comment {
 	}
 }
 
-func (c *Comment) Save(db *gorm.DB) error {
+func (c *Comment) Save(db *gorm.DB) (uint, error) {
 
 	err := db.Create(c).Error
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return c.ID, nil
 
+}
+
+func GetPostComment(db *gorm.DB, postID int) (*Post, error) {
+	var post Post
+	err := db.Preload("Comments", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("ID", "Content")
+	}).First(&post, postID).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &post, err
 }
 
 func GetCommentByID(db *gorm.DB, id uint, userID uint, postID uint) (*Comment, error) {

@@ -8,17 +8,18 @@ import (
 
 type Post struct {
 	gorm.Model
-	Title    string
-	Content  string
-	UserID   uint
-	User     User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	ImageID  uint
-	Image    UserUploadPost `gorm:"foreignKey:ImageID"`
-	Likes    int
-	ClubID   uint       `gorm:"default:null"`
-	Club     *Club      `gorm:"foreignKey:ClubID;constraint:OnDelete:CASCADE"`
-	Comments *[]Comment `gorm:"many2many:comment_post;constraint:OnDelete:CASCADE"`
-	Updated  bool
+	Title        string
+	Content      string
+	UserID       uint
+	User         User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	ImageID      uint
+	Image        UserUploadPost `gorm:"foreignKey:ImageID"`
+	Likes        int
+	ClubID       uint      `gorm:"default:null"`
+	Club         *Club     `gorm:"foreignKey:ClubID;constraint:OnDelete:CASCADE"`
+	Comments     []Comment `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	CommentCount int64     `gorm:"-"`
+	Updated      bool
 }
 
 func NewPost(title string, content string, userID uint, imageID uint, db *gorm.DB) *Post {
@@ -70,6 +71,7 @@ func AddCommentToPost(db *gorm.DB, postID uint, commentID uint) error {
 		return err
 	}
 
+	// Append the comment to the post's Comments
 	if err := db.Model(&post).Association("Comments").Append(&comment); err != nil {
 		return err
 	}

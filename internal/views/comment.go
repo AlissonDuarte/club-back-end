@@ -7,10 +7,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
+func CommentRead(w http.ResponseWriter, app *http.Request) {
+	postIDstr := chi.URLParam(app, "id")
+	postID, err := strconv.Atoi(postIDstr)
+
+	if err != nil {
+		http.Error(w, "Invalid post id", http.StatusBadRequest)
+		return
+	}
+
+	db := database.NewDb()
+
+	postData, err := models.GetPostComment(db, postID)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to get comments data: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(postData)
+}
+
 func CommentCreate(w http.ResponseWriter, app *http.Request) {
-	conn := database.NewDb()
 
 	var errorMessage string
 	var commentData serializer.CommentSerializer
@@ -18,7 +42,7 @@ func CommentCreate(w http.ResponseWriter, app *http.Request) {
 	err := json.NewDecoder(app.Body).Decode(&commentData)
 
 	if err != nil {
-		http.Error(w, "Error to read data", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Error to read data %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -34,13 +58,15 @@ func CommentCreate(w http.ResponseWriter, app *http.Request) {
 		commentData.Content,
 	)
 
-	err = newComment.Save(conn)
+	conn := database.NewDb()
+	commentID, err := newComment.Save(conn)
+
 	if err != nil {
 		errorMessage = fmt.Sprintf("Error to save comment: %s", err.Error())
 		http.Error(w, errorMessage, http.StatusInternalServerError)
 		return
 	}
-	err = models.AddCommentToPost(conn, uint(commentData.PostID), newComment.ID)
+	err = models.AddCommentToPost(conn, uint(commentData.PostID), commentID)
 	if err != nil {
 		errorMessage = fmt.Sprintf("Error to save comment in post: %s", err.Error())
 		http.Error(w, errorMessage, http.StatusInternalServerError)
