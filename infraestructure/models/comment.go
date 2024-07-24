@@ -37,7 +37,7 @@ func (c *Comment) Save(db *gorm.DB) (uint, error) {
 
 func GetPostComment(db *gorm.DB, postID int) ([]responses.CommentResponse, error) {
 	var comments []Comment
-	err := db.Preload("User.ProfilePicture").Where("post_id = ?", postID).Find(&comments).Error
+	err := db.Preload("User").Where("post_id = ?", postID).Find(&comments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +50,7 @@ func GetPostComment(db *gorm.DB, postID int) ([]responses.CommentResponse, error
 			CreatedAt: comment.CreatedAt.Format("2006-01-02 15:04:05"),
 			User: responses.UserResponse{
 				Username: comment.User.Username,
-				ProfilePicture: &responses.ProfilePicResponse{
-					FilePath: comment.User.ProfilePicture.FilePath,
-				},
+				ID:       comment.User.ID,
 			},
 		})
 	}

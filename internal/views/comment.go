@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -42,6 +43,12 @@ func CommentCreate(w http.ResponseWriter, app *http.Request) {
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error to read data %s", err.Error()), http.StatusBadRequest)
+		return
+	}
+	contentLenght := utf8.RuneCountInString(commentData.Content)
+	if contentLenght > 500 {
+		errorMessage = fmt.Sprintf("Error: Max lenght of comments is 500, yours is: %s", strconv.Itoa(contentLenght))
+		http.Error(w, errorMessage, http.StatusBadRequest)
 		return
 	}
 

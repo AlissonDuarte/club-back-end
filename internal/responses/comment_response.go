@@ -1,12 +1,8 @@
 package responses
 
 type UserResponse struct {
-	Username       string              `json:"username"`
-	ProfilePicture *ProfilePicResponse `json:"profile_picture"`
-}
-
-type ProfilePicResponse struct {
-	FilePath string `json:"file_path"`
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
 }
 
 type CommentResponse struct {
@@ -14,8 +10,4 @@ type CommentResponse struct {
 	Content   string       `json:"content"`
 	CreatedAt string       `json:"created_at"`
 	User      UserResponse `json:"user"`
-}
-
-type ImageResponse struct {
-	FilePath string `json:"file_path"`
 }
