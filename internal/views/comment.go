@@ -24,7 +24,6 @@ func CommentRead(w http.ResponseWriter, app *http.Request) {
 	db := database.NewDb()
 
 	postData, err := models.GetPostComment(db, postID)
-
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error to get comments data: %s", err), http.StatusInternalServerError)
 		return

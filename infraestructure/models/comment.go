@@ -1,6 +1,8 @@
 package models
 
 import (
+	"clube/internal/responses"
+
 	"gorm.io/gorm"
 )
 
@@ -33,16 +35,29 @@ func (c *Comment) Save(db *gorm.DB) (uint, error) {
 
 }
 
-func GetPostComment(db *gorm.DB, postID int) (*Post, error) {
-	var post Post
-	err := db.Preload("Comments", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("ID", "Content")
-	}).First(&post, postID).Error
-
+func GetPostComment(db *gorm.DB, postID int) ([]responses.CommentResponse, error) {
+	var comments []Comment
+	err := db.Preload("User.ProfilePicture").Where("post_id = ?", postID).Find(&comments).Error
 	if err != nil {
 		return nil, err
 	}
-	return &post, err
+
+	var responsesData []responses.CommentResponse
+	for _, comment := range comments {
+		responsesData = append(responsesData, responses.CommentResponse{
+			CommentID: comment.ID,
+			Content:   comment.Content,
+			CreatedAt: comment.CreatedAt.Format("2006-01-02 15:04:05"),
+			User: responses.UserResponse{
+				Username: comment.User.Username,
+				ProfilePicture: &responses.ProfilePicResponse{
+					FilePath: comment.User.ProfilePicture.FilePath,
+				},
+			},
+		})
+	}
+
+	return responsesData, nil
 }
 
 func GetCommentByID(db *gorm.DB, id uint, userID uint, postID uint) (*Comment, error) {
