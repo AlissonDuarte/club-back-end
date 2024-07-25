@@ -137,7 +137,7 @@ func CommentDelete(w http.ResponseWriter, app *http.Request) {
 	conn := database.NewDb()
 
 	var errorMessage string
-	var commentData serializer.CommentUpdateSerializer
+	var commentData serializer.CommentDeleteSerializer
 
 	err := json.NewDecoder(app.Body).Decode(&commentData)
 
