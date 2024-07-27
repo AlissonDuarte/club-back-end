@@ -47,6 +47,8 @@ func GetPostComment(db *gorm.DB, postID int) ([]responses.CommentResponse, error
 		responsesData = append(responsesData, responses.CommentResponse{
 			CommentID: comment.ID,
 			Content:   comment.Content,
+			Updated:   comment.Updated,
+			UpdatedAt: comment.UpdatedAt.Format("2006-01-02 15:04:05"),
 			CreatedAt: comment.CreatedAt.Format("2006-01-02 15:04:05"),
 			User: responses.UserResponse{
 				Username: comment.User.Username,
