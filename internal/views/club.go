@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
@@ -23,9 +24,14 @@ func ClubCreate(w http.ResponseWriter, r *http.Request) {
 	ownerIDstr := r.FormValue("owner")
 
 	ownerID, err := strconv.Atoi(ownerIDstr)
-	fmt.Println(err)
 	if err != nil {
 		http.Error(w, "Invalid owner ID format", http.StatusBadRequest)
+		return
+	}
+	nameLenght := utf8.RuneCountInString(clubName)
+	if nameLenght > 70 {
+		errorMessage := fmt.Sprintf("Error: Max lenght of comments is 70, yours is: %s", strconv.Itoa(nameLenght))
+		http.Error(w, errorMessage, http.StatusBadRequest)
 		return
 	}
 

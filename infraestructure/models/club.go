@@ -74,6 +74,14 @@ func GetClubFeed(db *gorm.DB, clubID uint, offset, limit int) ([]Post, error) {
 		return nil, err
 	}
 
+	for i := range posts {
+		var commentCount int64
+		err = db.Model(&Comment{}).Where("post_id = ?", posts[i].ID).Count(&commentCount).Error
+		if err != nil {
+			return nil, err
+		}
+		posts[i].CommentCount = commentCount
+	}
 	return posts, nil
 }
 func GetClubUploadByID(db *gorm.DB, clubID uint) (*UserUploadClub, error) {
