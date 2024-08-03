@@ -224,7 +224,7 @@ func UserRead(w http.ResponseWriter, app *http.Request) {
 
 	db := database.NewDb()
 
-	user, err := models.UserGetById(db, userID)
+	user, err := models.UserReadById(db, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -270,7 +270,7 @@ func UserUpdate(w http.ResponseWriter, app *http.Request) {
 	user.Phone = userData.Phone
 	user.Bio = userData.Bio
 	user.UpdatedAt = time.Now()
-
+	fmt.Println(user.Phone)
 	if !functions.PhoneCheck(user.Phone) {
 		http.Error(w, "Invalid phone number", http.StatusBadRequest)
 		return
@@ -439,7 +439,6 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User with email not found: "+userLoginData.Email, http.StatusBadRequest)
 		return
 	}
-
 
 	//err = functions.VerifyPassword(userLoginData.Passwd, user.PasswdHash)
 	//if err != nil {

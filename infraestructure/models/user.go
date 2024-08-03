@@ -1,6 +1,7 @@
 package models
 
 import (
+	"clube/internal/responses"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -182,9 +183,37 @@ func UserGetPassword(db *gorm.DB, id int) (string, error) {
 	return passwd_hash, nil
 }
 
+func UserReadById(db *gorm.DB, id int) (*responses.UserGetResponse, error) {
+	user, err := UserGetById(db, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var responseUser responses.UserGetResponse
+	responseUser.ID = user.ID
+	responseUser.Name = user.Name
+	responseUser.Username = user.Username
+	responseUser.Gender = user.Gender
+	responseUser.Phone = user.Phone
+	responseUser.BirthDate = user.BirthDate
+	responseUser.Email = user.Email
+	responseUser.ProfilePictureID = user.ProfilePictureID
+	responseUser.Bio = user.Bio
+
+	for _, club := range user.Clubs {
+		responseUser.Clubs = append(responseUser.Clubs, responses.UserGroup{
+			ID:   club.ID,
+			Name: club.Name,
+		})
+	}
+	return &responseUser, nil
+}
+
 func UserGetById(db *gorm.DB, id int) (*User, error) {
 	var user User
-	err := db.Select("id",
+	err := db.Select(
+		"id",
 		"email",
 		"phone",
 		"username",
@@ -299,8 +328,11 @@ func GetFollowing(db *gorm.DB, userID uint) ([]User, error) {
 }
 
 // GetFeed retorna todos os posts dos usuários que um usuário segue
-func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
+func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]responses.FeedResponse, error) {
 	var user User
+	var posts []Post
+	var followingIDs []uint
+	var responseData []responses.FeedResponse
 
 	err := db.Preload("Following", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id")
@@ -309,14 +341,12 @@ func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
 		return nil, err
 	}
 
-	var followingIDs []uint
 	followingIDs = append(followingIDs, userID)
 
 	for _, following := range user.Following {
 		followingIDs = append(followingIDs, following.ID)
 	}
 
-	var posts []Post
 	err = db.Preload("User", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id", "name", "username", "profile_picture_id").Preload("ProfilePicture", func(tx *gorm.DB) *gorm.DB {
 			return tx.Select("id", "file_path")
@@ -325,10 +355,42 @@ func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
 		Where("user_id IN (?) AND (club_id IS NULL OR club_id = 0)", followingIDs).
 		Offset(offset).Limit(limit).
 		Find(&posts).Error
+
 	if err != nil {
 		return nil, err
 	}
 
+	for _, post := range posts {
+		var commentCount int64
+		err = db.Model(&Comment{}).Where("post_id = ?", post.ID).Count(&commentCount).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		responseData = append(responseData, responses.FeedResponse{
+			ID:           post.ID,
+			Title:        post.Title,
+			Content:      post.Content,
+			UserID:       post.UserID,
+			ImageID:      post.ID,
+			CommentCount: commentCount,
+			UpdatedAt:    post.UpdatedAt,
+			CreatedAt:    post.CreatedAt,
+
+			User: responses.FeedUserData{
+				ID:               post.User.ID,
+				Name:             post.User.Name,
+				Username:         post.User.Username,
+				ProfilePictureID: post.User.ProfilePictureID,
+
+				ProfilePicture: responses.FeedProfilePicture{
+					ID:       post.User.ProfilePicture.ID,
+					FilePath: post.User.ProfilePicture.FilePath,
+				},
+			},
+		})
+	}
 	for i := range posts {
 		var commentCount int64
 		err = db.Model(&Comment{}).Where("post_id = ?", posts[i].ID).Count(&commentCount).Error
@@ -338,5 +400,5 @@ func GetFeed(db *gorm.DB, userID uint, offset, limit int) ([]Post, error) {
 		posts[i].CommentCount = commentCount
 	}
 
-	return posts, nil
+	return responseData, nil
 }
