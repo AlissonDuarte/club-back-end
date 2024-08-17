@@ -126,9 +126,14 @@ func PostRead(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	serialized, err := serializer.PostGetSerialize(post)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error to serialized data %s", err.Error()), http.StatusInternalServerError)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(post)
+	json.NewEncoder(w).Encode(serialized)
 }
 
 func PostDelete(w http.ResponseWriter, app *http.Request) {
@@ -152,7 +157,7 @@ func PostDelete(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
-	if post.UserID != uint(userID) {
+	if post.User.ID != uint(userID) {
 		http.Error(w, "You can't delete this post", http.StatusForbidden)
 		return
 	}
@@ -245,14 +250,14 @@ func PostUpdate(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, "Cannot retrive this post data", http.StatusInternalServerError)
 	}
 
-	if updatedPost.UserID != uint(userIDUint) {
+	if updatedPost.User.ID != uint(userIDUint) {
 		http.Error(w, "You cannot update this post", http.StatusUnauthorized)
 		return
 	}
 
 	updatedPost.Content = postContent
 	updatedPost.Title = postTitle
-	updatedPost.ImageID = upload.ID
+	updatedPost.Image.ID = upload.ID
 	updatedPost.Updated = true
 	updatedPost.UpdatedAt = time.Now()
 
