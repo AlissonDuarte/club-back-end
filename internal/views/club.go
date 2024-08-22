@@ -128,9 +128,14 @@ func ClubRead(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	response, err := serializer.ClubGetSerialize(club)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(club)
+	json.NewEncoder(w).Encode(response)
 }
 
 func ClubReadAll(w http.ResponseWriter, app *http.Request) {
