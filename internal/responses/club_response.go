@@ -26,3 +26,23 @@ type ClubUsersResponse struct {
 	Gender    string `json:"Gender"`
 	BirthDate string `json:"BirthDate"`
 }
+
+// daqui para baixo é referente a serializacao da resposta da requisicao GET /club/id/post/id
+type ClubPostResponse struct {
+	ID      uint         `json:"ID"`
+	Title   string       `json:"Title"`
+	Content string       `json:"Content"`
+	User    ClubPostUser `json:"User"`
+	ClubID  uint         `json:"ClubID"`
+}
+
+type ClubPostUser struct {
+	ID             uint                       `json:"ID"`
+	Name           string                     `json:"Name"`
+	Username       string                     `json:"Username"`
+	ProfilePicture ClubPostUserProfilePicture `json:"ProfilePicture"`
+}
+
+type ClubPostUserProfilePicture struct {
+	ID uint `json:"ID"`
+}
