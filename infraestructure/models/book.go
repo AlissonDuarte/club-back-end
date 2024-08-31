@@ -11,21 +11,26 @@ type Book struct {
 	Name        string `gorm:"default:''"`
 	Resume      string `gorm:"default:''"`
 	Release     time.Time
-	Rate        int `gorm:"default:0"`
 	BookCoverID uint
 	BookCover   *UserUpload `gorm:"foreignKey:BookCoverID;constraint:OnDelete:CASCADE"`
 	AuthorID    uint
 	Author      *Author `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE"`
-	Readers     []*User `gorm:"many2many:book_readers;constraint:OnDelete:CASCADE"`
 	Tags        []*Tag  `gorm:"many2many:book_tags;constraint:OnDelete:CASCADE"`
 }
 
-func NewBook(name string, resume string, release time.Time, rate int, coverID uint, authorID uint, db *gorm.DB) *Book {
+type UserBook struct {
+	gorm.Model
+	UserID uint   `gorm:"not null"`
+	User   *User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Tags   []*Tag `gorm:"many2many:userbook_tags;constraint:OnDelete:CASCADE"`
+	Rate   int    `gorm:"default:0"`
+}
+
+func NewBook(name string, resume string, release time.Time, coverID uint, authorID uint, db *gorm.DB) *Book {
 	return &Book{
 		Name:        name,
 		Resume:      resume,
 		Release:     release,
-		Rate:        rate,
 		BookCoverID: coverID,
 		AuthorID:    authorID,
 	}

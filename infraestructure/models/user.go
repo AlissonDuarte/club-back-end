@@ -24,7 +24,7 @@ type User struct {
 	Bio              string      `gorm:"default:null"`
 	Clubs            []*Club     `gorm:"many2many:user_club;constraint:OnDelete:CASCADE"`
 	ClubOnwer        []*Club     `gorm:"many2many:owner_club;constraint:OnDelete:CASCADE"`
-	Posts            []Post      `gorm:"constraint:OnDelete:CASCADE"` // Relacionamento adicionado com a opção OnDelete("CASCADE")
+	Posts            []Post      `gorm:"constraint:OnDelete:CASCADE"`
 	ProfilePictureID uint        `gorm:"default:null"`
 	ProfilePicture   *UserUpload `gorm:"foreignKey:ProfilePictureID"`
 	Followers        []*User     `gorm:"many2many:user_followers; constraint:OnDelete:Cascade"`

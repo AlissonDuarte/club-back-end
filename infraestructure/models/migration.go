@@ -13,8 +13,8 @@ func Migrate(db *gorm.DB) error {
 		&Post{},
 		&Comment{},
 		&Author{},
-		&Rate{},
 		&Book{},
+		&UserBook{},
 		&Tag{},
 	)
 	if err != nil {
