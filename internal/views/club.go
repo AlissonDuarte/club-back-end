@@ -165,8 +165,14 @@ func ClubReadAll(w http.ResponseWriter, app *http.Request) {
 		return
 	}
 
+	response, err := serializer.ClubsGetSerialize(clubs)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error to get data: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(clubs)
+	json.NewEncoder(w).Encode(response)
 
 }
 

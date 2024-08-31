@@ -39,3 +39,17 @@ func ClubGetSerialize(club *models.Club) (*responses.ClubResponse, error) {
 
 	return &clubResponse, nil
 }
+
+func ClubsGetSerialize(clubs []*models.Club) ([]*responses.ClubResponse, error) {
+	var clubsResponse []*responses.ClubResponse
+
+	for _, club := range clubs {
+		clubResponse, err := ClubGetSerialize(club)
+		if err != nil {
+			return nil, err
+		}
+		clubsResponse = append(clubsResponse, clubResponse)
+	}
+
+	return clubsResponse, nil
+}
