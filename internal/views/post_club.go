@@ -4,6 +4,7 @@ import (
 	"clube/infraestructure/database"
 	"clube/infraestructure/models"
 	"clube/internal/functions"
+	"clube/internal/serializer"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -166,9 +167,14 @@ func PostClubRead(w http.ResponseWriter, app *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	response, err := serializer.PostGetSerialize(post)
 
+	if err != nil {
+		http.Error(w, "Error to serialized data response: %s", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(post)
+	json.NewEncoder(w).Encode(response)
 
 }
 
