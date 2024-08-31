@@ -19,3 +19,30 @@ type Book struct {
 	Readers     []*User `gorm:"many2many:book_readers;constraint:OnDelete:CASCADE"`
 	Tags        []*Tag  `gorm:"many2many:book_tags;constraint:OnDelete:CASCADE"`
 }
+
+func NewBook(name string, resume string, release time.Time, rate int, coverID uint, authorID uint, db *gorm.DB) *Book {
+	return &Book{
+		Name:        name,
+		Resume:      resume,
+		Release:     release,
+		Rate:        rate,
+		BookCoverID: coverID,
+		AuthorID:    authorID,
+	}
+}
+
+func (b *Book) Save(db *gorm.DB) (uint, error) {
+	err := db.Create(b).Error
+	if err != nil {
+		return 0, err
+	}
+	return b.ID, nil
+}
+
+func (b *Book) Update(db *gorm.DB) error {
+	err := db.Save(b).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
