@@ -108,3 +108,19 @@ func isValidTagType(tagType TagChoices) bool {
 	_, ok := validTagChoices[tagType]
 	return ok
 }
+
+func (t *Tag) Save(db *gorm.DB) (uint, error) {
+	err := db.Create(t).Error
+	if err != nil {
+		return 0, err
+	}
+	return t.ID, nil
+}
+
+func (t *Tag) Update(db *gorm.DB) error {
+	err := db.Save(t).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}

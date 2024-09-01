@@ -130,6 +130,7 @@ func PostRead(w http.ResponseWriter, app *http.Request) {
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error to serialized data %s", err.Error()), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
